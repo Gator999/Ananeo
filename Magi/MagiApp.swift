@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct CircloApp: App {
+struct MagiApp: App {
     @State private var store = ItemStore()
 
     var body: some Scene {
