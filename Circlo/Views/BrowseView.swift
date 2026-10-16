@@ -34,7 +34,7 @@ struct BrowseView: View {
                     }
                 }
             }
-            .navigationTitle("Ma'gi")
+            .navigationTitle("Circlo")
             .navigationDestination(for: Item.self) { item in
                 ItemDetailView(item: item)
             }
