@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct ReuseApp: App {
+struct ReviveApp: App {
     @State private var store = ItemStore()
 
     var body: some Scene {

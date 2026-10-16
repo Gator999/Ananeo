@@ -34,7 +34,7 @@ struct BrowseView: View {
                     }
                 }
             }
-            .navigationTitle("Reuse")
+            .navigationTitle("Revive")
             .navigationDestination(for: Item.self) { item in
                 ItemDetailView(item: item)
             }
