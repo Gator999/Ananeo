@@ -5,7 +5,7 @@ set local role postgres;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(22);
+select plan(25);
 
 -- Users -----------------------------------------------------------------------
 -- Alice gives. Bob and Carol each ask for the same bookshelf. Dave is not part of any pickup.
@@ -98,6 +98,22 @@ select throws_ok(
 select throws_ok(
     $$update conversations set receiver_id = '00000000-0000-0000-0000-00000000000d' where id = '20000000-0000-0000-0000-00000000000b'$$,
     '42501', null, 'a request cannot be handed to someone else');
+
+-- Clients cannot pick their own timestamps ----------------------------------------
+select throws_ok(
+    $$insert into messages (conversation_id, body, created_at)
+      values ('20000000-0000-0000-0000-00000000000b', 'from the future', '2099-01-01')$$,
+    '42501', null, 'a message cannot be dated by the client');
+select throws_ok(
+    $$insert into messages (conversation_id, sender_id, body)
+      values ('20000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000b', 'hi')$$,
+    '42501', null, 'the sender is always the signed-in user, never sent by the client');
+
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000d');
+select throws_ok(
+    $$insert into conversations (item_id, giver_id, created_at)
+      values ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000a', '2001-01-01')$$,
+    '42501', null, 'a request cannot be backdated');
 
 -- Blocking ----------------------------------------------------------------------
 select pg_temp.act_as('00000000-0000-0000-0000-00000000000a');
