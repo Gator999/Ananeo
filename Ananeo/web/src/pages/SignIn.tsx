@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { Spinner } from '../components/ui'
-import { appleSignInEnabled, isConfigured, isLocalBackend } from '../lib/supabase'
+import { isConfigured, isLocalBackend, signInMethods } from '../lib/supabase'
 import { useAuth } from '../services/auth'
 
 export function SignIn() {
@@ -14,6 +14,9 @@ export function SignIn() {
   const [sent, setSent] = useState(false)
   const [working, setWorking] = useState(false)
   const [error, setError] = useState<string>()
+
+  const emailEnabled = signInMethods.includes('email')
+  const providers = signInMethods.filter((m) => m !== 'email')
 
   if (auth.state.kind === 'signedIn') return <Navigate to={from} replace />
   if (auth.state.kind === 'loading') return <Spinner />
@@ -56,7 +59,24 @@ export function SignIn() {
 
         {!isConfigured && <p className="notice warn">This build has no backend configured. See web/README.md.</p>}
 
-        {sent ? (
+        {providers.length > 0 && (
+          <div className="stack">
+            {providers.includes('apple') && (
+              <button type="button" className="btn apple block lg" disabled={working} onClick={() => run(() => auth.signInWith('apple'))}>
+                 Continue with Apple
+              </button>
+            )}
+            {providers.includes('google') && (
+              <button type="button" className="btn block lg" disabled={working} onClick={() => run(() => auth.signInWith('google'))}>
+                <GoogleMark /> Continue with Google
+              </button>
+            )}
+          </div>
+        )}
+
+        {emailEnabled && providers.length > 0 && <div className="divider">or</div>}
+
+        {emailEnabled && sent ? (
           <form className="stack" onSubmit={verify}>
             <p className="notice">
               Check <b>{email}</b>. Open the link on this device, or enter the 6-digit code if your email has one.
@@ -81,7 +101,7 @@ export function SignIn() {
               Use a different email
             </button>
           </form>
-        ) : (
+        ) : emailEnabled ? (
           <form className="stack" onSubmit={sendCode}>
             <label className="field">
               <span>Email</span>
@@ -98,16 +118,10 @@ export function SignIn() {
             <button className="btn primary block" disabled={working || !email.includes('@')}>
               {working ? <Spinner inline /> : 'Continue with Email'}
             </button>
-            {appleSignInEnabled && (
-              <>
-                <div className="divider">or</div>
-                <button type="button" className="btn apple block" disabled={working} onClick={() => run(auth.signInWithApple)}>
-                   Continue with Apple
-                </button>
-              </>
-            )}
           </form>
-        )}
+        ) : null}
+
+        {providers.length === 0 && !emailEnabled && <p className="notice warn">No sign-in method is enabled for this build.</p>}
 
         {error && <p className="error center">{error}</p>}
         <p className="caption center">Your exact location is never shown to other people.</p>
@@ -117,6 +131,17 @@ export function SignIn() {
         </p>
       </div>
     </div>
+  )
+}
+
+function GoogleMark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.7 17.7 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z" />
+      <path fill="#FBBC05" d="M10.5 28.6A14.5 14.5 0 0 1 9.7 24c0-1.6.3-3.1.8-4.6l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.7l7.9-6.1z" />
+      <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.1 1.4-4.9 2.3-8.2 2.3-6.3 0-11.6-4.2-13.5-10l-7.9 6.1C6.5 42.6 14.6 48 24 48z" />
+    </svg>
   )
 }
 
