@@ -22,7 +22,7 @@ struct PillButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(AnaneoTheme.Typography.button)
-            .foregroundStyle(foreground)
+            .foregroundStyle(foreground(for: configuration.role))
             .padding(.horizontal, AnaneoTheme.Spacing.xl)
             .frame(maxWidth: isExpanded ? CGFloat.infinity : nil)
             .frame(height: AnaneoTheme.Size.pillButton)
@@ -37,10 +37,11 @@ struct PillButtonStyle: ButtonStyle {
             }
     }
 
-    private var foreground: Color {
+    /// Destructive secondary pills, like "Remove Listing", read in red.
+    private func foreground(for role: ButtonRole?) -> Color {
         switch kind {
         case .primary, .glass: .white
-        case .secondary: AnaneoTheme.ink
+        case .secondary: role == .destructive ? .red : AnaneoTheme.ink
         }
     }
 

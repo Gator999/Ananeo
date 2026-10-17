@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 
 /// A listing as returned by the `nearby_items` function or a select on `items`.
@@ -16,8 +17,16 @@ struct Listing: Identifiable, Hashable, Decodable {
     let createdAt: Date
     /// Present only in nearby results. Already fuzzed by the server.
     let distanceKm: Double?
+    /// The fuzzed listing point, present only in nearby results.
+    let latitude: Double?
+    let longitude: Double?
 
     var distanceMiles: Double? { distanceKm.map(Distance.miles(fromKm:)) }
+
+    var coordinate: CLLocationCoordinate2D? {
+        guard let latitude, let longitude else { return nil }
+        return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -27,6 +36,7 @@ struct Listing: Identifiable, Hashable, Decodable {
         case photos
         case createdAt = "created_at"
         case distanceKm = "distance_km"
+        case latitude, longitude
     }
 }
 
@@ -69,6 +79,7 @@ extension Listing {
         id: UUID(), ownerID: UUID(), title: "Oak bookshelf",
         details: "Solid wood, five shelves. Needs a pickup truck.",
         category: .furniture, condition: .good, mode: .give, status: .available,
-        wants: nil, estKg: 25, photos: [], createdAt: .now, distanceKm: 1.9
+        wants: nil, estKg: 25, photos: [], createdAt: .now.addingTimeInterval(-7200), distanceKm: 1.9,
+        latitude: 40.6782, longitude: -73.9442
     )
 }
