@@ -73,7 +73,7 @@ VITE_SUPABASE_URL=https://YOUR-REF.supabase.co VITE_SUPABASE_KEY=sb_publishable_
 
 ### Option B: Deploy on every push (Cloudflare Workers Builds)
 
-In the Cloudflare dashboard: Workers & Pages > Create > Import a repository > `Gator999/GatorProjects`.
+In the Cloudflare dashboard: Workers & Pages > Create > Import a repository > `Gator999/Ananeo`.
 
 | Setting | Value |
 |---|---|
