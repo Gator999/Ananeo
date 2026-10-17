@@ -3,6 +3,7 @@ import SwiftUI
 /// The Pickups tab: everything you're giving or getting, from the first request to a confirmed handoff.
 struct PickupsView: View {
     @Environment(PickupService.self) private var pickups
+    @Environment(ChatService.self) private var chat
 
     @State private var errorMessage: String?
 
@@ -36,7 +37,10 @@ struct PickupsView: View {
             .navigationDestination(for: UUID.self) { itemID in
                 PickupDetailView(itemID: itemID)
             }
-            .refreshable { await load() }
+            .refreshable {
+                await load()
+                try? await chat.refresh()
+            }
             .task { await load() }
         }
     }
@@ -68,6 +72,7 @@ struct PickupsView: View {
 
 struct PickupRow: View {
     @Environment(ListingService.self) private var listings
+    @Environment(ChatService.self) private var chat
     let pickup: Pickup
 
     var body: some View {
@@ -82,6 +87,18 @@ struct PickupRow: View {
                 Text(summary)
                     .font(.caption)
                     .foregroundStyle(pickup.needsYou ? Color.accentColor : Color.secondary)
+            }
+
+            let unread = chat.unreadCount(in: pickup)
+            if unread > 0 {
+                Spacer()
+                Label("\(unread)", systemImage: "bubble.left.fill")
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.accentColor, in: Capsule())
+                    .accessibilityLabel("\(unread) unread messages")
             }
         }
     }
@@ -109,4 +126,5 @@ struct PickupRow: View {
     PickupsView()
         .environment(PickupService.preview([.preview]))
         .environment(ListingService())
+        .environment(ChatService.preview())
 }

@@ -4,6 +4,7 @@ import SwiftUI
 struct PickupDetailView: View {
     @Environment(PickupService.self) private var pickups
     @Environment(ListingService.self) private var listings
+    @Environment(ChatService.self) private var chat
     @Environment(\.dismiss) private var dismiss
 
     let itemID: UUID
@@ -44,6 +45,8 @@ struct PickupDetailView: View {
             } else {
                 gettingSections(pickup)
             }
+
+            messagesSection(pickup)
 
             if let errorMessage {
                 Section {
@@ -201,6 +204,24 @@ struct PickupDetailView: View {
 
     // MARK: - Shared
 
+    /// One chat per request. Givers see the reservation first, then everyone else who asked.
+    @ViewBuilder
+    private func messagesSection(_ pickup: Pickup) -> some View {
+        let reservation = pickup.reservation
+        let requests = reservation.map { held in [held] + pickup.requests.filter { $0.id != held.id } } ?? pickup.requests
+        if !requests.isEmpty {
+            Section("Messages") {
+                ForEach(requests) { request in
+                    NavigationLink {
+                        ChatView(request: request, itemTitle: pickup.title)
+                    } label: {
+                        ChatLink(request: request, summary: chat.summary(for: request))
+                    }
+                }
+            }
+        }
+    }
+
     private func completedSection(_ pickup: Pickup, with reservation: PickupRequest) -> some View {
         Section {
             if let completedAt = reservation.handoff?.completedAt {
@@ -244,6 +265,38 @@ private struct RequesterLabel: View {
     }
 }
 
+/// A request's chat, with its latest message and unread count.
+private struct ChatLink: View {
+    let request: PickupRequest
+    let summary: ChatSummary?
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(request.otherName)
+                Text(preview)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            if let unread = summary?.unreadCount, unread > 0 {
+                Text("\(unread)")
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(Color.accentColor, in: Capsule())
+            }
+        }
+    }
+
+    private var preview: String {
+        guard let summary else { return "Message \(request.otherName)" }
+        return summary.lastSenderIsMe ? "You: \(summary.lastBody)" : summary.lastBody
+    }
+}
+
 /// Who has confirmed so far.
 private struct ConfirmationStatus: View {
     let handoff: Handoff
@@ -270,4 +323,5 @@ private struct ConfirmationStatus: View {
     }
     .environment(PickupService.preview([.preview]))
     .environment(ListingService())
+    .environment(ChatService.preview())
 }

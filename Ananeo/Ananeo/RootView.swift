@@ -4,6 +4,7 @@ import SwiftUI
 struct RootView: View {
     @Environment(AuthService.self) private var auth
     @Environment(PickupService.self) private var pickups
+    @Environment(ChatService.self) private var chat
 
     var body: some View {
         Group {
@@ -17,7 +18,10 @@ struct RootView: View {
             }
         }
         .animation(.default, value: auth.state)
-        // One account's pickups must never show for the next.
-        .onChange(of: auth.state) { pickups.reset() }
+        // One account's pickups and messages must never show for the next.
+        .onChange(of: auth.state) {
+            pickups.reset()
+            chat.reset()
+        }
     }
 }
