@@ -108,7 +108,7 @@ struct ImpactView: View {
 
     private var hero: some View {
         VStack(spacing: AnaneoTheme.Spacing.lg) {
-            ImpactRing(kilograms: mine.kgDiverted)
+            ImpactRing(pounds: mine.poundsDiverted)
                 .frame(width: 236)
             HStack(spacing: AnaneoTheme.Spacing.sm) {
                 LoopMark().frame(width: 16, height: 16)

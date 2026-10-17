@@ -22,6 +22,7 @@ struct Listing: Identifiable, Hashable, Decodable {
     let longitude: Double?
 
     var distanceMiles: Double? { distanceKm.map(Distance.miles(fromKm:)) }
+    var estPounds: Double { Weight.pounds(fromKg: estKg) }
 
     var coordinate: CLLocationCoordinate2D? {
         guard let latitude, let longitude else { return nil }
@@ -57,6 +58,8 @@ struct Impact: Decodable, Equatable {
     var itemsReceived: Int = 0
     var kgDiverted: Double = 0
 
+    var poundsDiverted: Double { Weight.pounds(fromKg: kgDiverted) }
+
     enum CodingKeys: String, CodingKey {
         case itemsGiven = "items_given"
         case itemsReceived = "items_received"
@@ -67,6 +70,8 @@ struct Impact: Decodable, Equatable {
 struct CommunityImpact: Decodable, Equatable {
     var itemsKeptMoving: Int = 0
     var kgDiverted: Double = 0
+
+    var poundsDiverted: Double { Weight.pounds(fromKg: kgDiverted) }
 
     enum CodingKeys: String, CodingKey {
         case itemsKeptMoving = "items_kept_moving"

@@ -177,8 +177,8 @@ extension LoopMark {
                         .frame(width: 180)
                         .overlay {
                             VStack(spacing: AnaneoTheme.Spacing.xs) {
-                                Text("128.4").numerals(.largeTitle)
-                                Text("kg kept from landfill").font(.footnote.weight(.semibold)).foregroundStyle(AnaneoTheme.smoke)
+                                Text("283.1").numerals(.largeTitle)
+                                Text("lbs kept from landfill").font(.footnote.weight(.semibold)).foregroundStyle(AnaneoTheme.smoke)
                             }
                         }
                     VStack {

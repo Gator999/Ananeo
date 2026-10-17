@@ -17,12 +17,12 @@ struct ShareCard: View {
                     .frame(width: 120, height: 120)
                     .shadow(color: .black.opacity(0.3), radius: 18, y: 12)
                 VStack(spacing: 6) {
-                    Text(impact.kgDiverted, format: .number.precision(.fractionLength(0...1)))
+                    Text(impact.poundsDiverted, format: .number.precision(.fractionLength(0...1)))
                         .font(.system(size: 88, weight: .bold, design: .rounded))
                         .monospacedDigit()
                         .minimumScaleFactor(0.5)
                         .lineLimit(1)
-                    Text("kg kept from landfill")
+                    Text("lbs kept from landfill")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(AnaneoTheme.mint)
                 }

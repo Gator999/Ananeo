@@ -27,8 +27,8 @@ struct CommunityCard: View {
     private var totals: Text {
         Text(community.itemsKeptMoving, format: .number).font(AnaneoTheme.Typography.numerals(.title3))
             + Text(" items kept moving · ")
-            + Text(community.kgDiverted, format: .number.precision(.fractionLength(0))).font(AnaneoTheme.Typography.numerals(.title3))
-            + Text(" kg")
+            + Text(community.poundsDiverted, format: .number.precision(.fractionLength(0))).font(AnaneoTheme.Typography.numerals(.title3))
+            + Text(" lbs")
     }
 }
 
