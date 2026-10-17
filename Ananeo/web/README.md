@@ -36,7 +36,7 @@ with a different email to try both sides of a pickup. That form is compiled out 
 
 ## Sign-in on the web
 
-`VITE_SIGN_IN_METHODS` lists the buttons to show, comma separated. ananeo.app uses `apple,google`.
+`VITE_SIGN_IN_METHODS` lists the buttons to show, comma separated. ananeo.app uses `apple` only for now.
 
 - **Apple.** Web sign-in needs an Apple *Services ID* (not the app's bundle ID) with Sign in with
   Apple enabled for the domain `ananeo.app` and the return URL
