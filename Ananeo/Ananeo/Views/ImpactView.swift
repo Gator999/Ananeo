@@ -13,6 +13,7 @@ struct ImpactView: View {
     @State private var confirmingDelete = false
     @State private var showingBlocked = false
     @State private var showingModeration = false
+    @State private var showingTerms = false
 
     var body: some View {
         NavigationStack {
@@ -56,6 +57,7 @@ struct ImpactView: View {
                     if safety.isModerator {
                         Button("Moderation", systemImage: "checkmark.shield") { showingModeration = true }
                     }
+                    Button("Terms of Use", systemImage: "doc.text") { showingTerms = true }
                     Divider()
                     Button("Sign Out") {
                         Task { await auth.signOut() }
@@ -69,6 +71,7 @@ struct ImpactView: View {
             }
             .sheet(isPresented: $showingBlocked) { BlockedPeopleView() }
             .sheet(isPresented: $showingModeration) { ModerationView() }
+            .sheet(isPresented: $showingTerms) { TermsSheet() }
             .confirmationDialog("Delete your account?", isPresented: $confirmingDelete, titleVisibility: .visible) {
                 Button("Delete Account", role: .destructive) {
                     Task { await auth.deleteAccount() }

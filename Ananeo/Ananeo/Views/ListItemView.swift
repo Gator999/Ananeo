@@ -15,6 +15,7 @@ struct ListItemView: View {
     @State private var photos: [PickedPhoto] = []
     @State private var isLoadingPhotos = false
     @State private var isPosting = false
+    @State private var showingProhibited = false
     @State private var errorMessage: String?
 
     private var coordinate: CLLocationCoordinate2D? {
@@ -57,6 +58,10 @@ struct ListItemView: View {
                 pickupSection
 
                 Section {
+                    Button("What Can't Be Listed", systemImage: "nosign") { showingProhibited = true }
+                }
+
+                Section {
                     Button {
                         Task { await post() }
                     } label: {
@@ -76,6 +81,7 @@ struct ListItemView: View {
                 }
             }
             .navigationTitle("Give")
+            .sheet(isPresented: $showingProhibited) { ProhibitedItemsSheet() }
             .onChange(of: pickerItems) { _, items in
                 Task { await loadPhotos(items) }
             }

@@ -14,6 +14,7 @@ Notes for future work on this app. The product plan and roadmap live in PLAN.md.
 - Reports are limited to things someone else posted that the reporter can see, one per person per thing.
 - Moderators are added by hand: `insert into public.moderators (user_id) values ('<auth user id>');`. The Moderation screen appears in the account menu on the Impact tab only for them.
 - A ban sets `profiles.banned_at` and `auth.users.banned_until`, and deletes the person's sessions. Their current access token keeps working until it expires, within an hour. To unban, clear both columns.
+- The terms of use live in the app, in `Shared/TermsOfUse.swift`, with a version number. Bump `version` to make everyone accept again. Acceptance is recorded per version in `terms_acceptances` through `accept_terms`. `RootView` shows the terms until they're accepted, and `TermsService` remembers acceptance per user on the device.
 - Owners can update an item only while it is `available` or `removed`. Reserved and handed-off items change only through `reserve_item`, `cancel_reservation`, `confirm_handoff`, and `withdraw_request`.
 
 ## iOS
