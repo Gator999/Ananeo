@@ -7,13 +7,15 @@ struct ListItemView: View {
     @Environment(ListingService.self) private var listings
     @Environment(LocationService.self) private var location
 
+    /// Called after a successful post, once the form has been cleared.
+    var onPosted: () -> Void = {}
+
     @State private var draft = ListingDraft()
     @State private var pickerItems: [PhotosPickerItem] = []
     @State private var photos: [Data] = []
     @State private var isLoadingPhotos = false
     @State private var isPosting = false
     @State private var errorMessage: String?
-    @State private var didPost = false
 
     private var coordinate: CLLocationCoordinate2D? {
         if case .ready(let coordinate) = location.status { coordinate } else { nil }
@@ -74,11 +76,6 @@ struct ListItemView: View {
                 }
             }
             .navigationTitle("Give")
-            .alert("Posted", isPresented: $didPost) {
-                Button("OK") {}
-            } message: {
-                Text("Your item is now visible to people nearby.")
-            }
             .onChange(of: pickerItems) { _, items in
                 Task { await loadPhotos(items) }
             }
@@ -177,7 +174,7 @@ struct ListItemView: View {
             draft = ListingDraft()
             pickerItems = []
             photos = []
-            didPost = true
+            onPosted()
         } catch {
             errorMessage = "Couldn't post: \(error.localizedDescription)"
         }

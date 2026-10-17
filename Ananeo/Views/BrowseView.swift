@@ -6,8 +6,10 @@ struct BrowseView: View {
     @Environment(ListingService.self) private var listings
     @Environment(LocationService.self) private var location
 
+    @State private var path = NavigationPath()
+
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 switch location.status {
                 case .ready(let coordinate):
@@ -43,6 +45,8 @@ struct BrowseView: View {
             }
         }
         .onAppear { location.request() }
+        // Return to the feed when a listing is posted or removed, so the change is visible.
+        .onChange(of: listings.revision) { path = NavigationPath() }
     }
 }
 
