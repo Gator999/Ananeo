@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ListingDetailView: View {
     @Environment(ListingService.self) private var listings
+    @Environment(PickupService.self) private var pickups
     @Environment(AuthService.self) private var auth
     @Environment(\.dismiss) private var dismiss
 
@@ -9,10 +10,20 @@ struct ListingDetailView: View {
 
     @State private var confirmingRemove = false
     @State private var isRemoving = false
+    @State private var isRequesting = false
     @State private var errorMessage: String?
 
     private var isMine: Bool {
         if case .signedIn(let userID) = auth.state { userID == listing.ownerID } else { false }
+    }
+
+    private var hasRequested: Bool {
+        pickups.pickup(for: listing.id)?.isGiver == false
+    }
+
+    /// For the owner: how many people have asked for this item.
+    private var requestCount: Int {
+        isMine ? pickups.pickup(for: listing.id)?.requests.count ?? 0 : 0
     }
 
     var body: some View {
@@ -51,15 +62,24 @@ struct ListingDetailView: View {
                 if isMine {
                     Button("Remove Listing", role: .destructive) { confirmingRemove = true }
                         .disabled(isRemoving)
+                } else if hasRequested {
+                    Label("Requested", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.tint)
                 } else {
-                    Button("Request Pickup", systemImage: "bubble.left.and.bubble.right") {}
-                        .disabled(true)
+                    Button("Request Pickup", systemImage: "hand.raised") {
+                        Task { await request() }
+                    }
+                    .disabled(isRequesting)
                 }
             } footer: {
                 if let errorMessage {
                     Text(errorMessage).foregroundStyle(.red)
+                } else if requestCount > 0 {
+                    Text(requestCount == 1 ? "1 person asked for this. Choose who gets it in Pickups." : "\(requestCount) people asked for this. Choose who gets it in Pickups.")
+                } else if hasRequested {
+                    Text("Follow along in Pickups. If the giver chooses you, you'll both confirm the handoff there.")
                 } else if !isMine {
-                    Text("Messaging arrives in the next update.")
+                    Text("The giver chooses who gets it from everyone who asks.")
                 }
             }
         }
@@ -92,6 +112,17 @@ struct ListingDetailView: View {
         }
     }
 
+    private func request() async {
+        errorMessage = nil
+        isRequesting = true
+        defer { isRequesting = false }
+        do {
+            try await pickups.request(listing)
+        } catch {
+            errorMessage = "Couldn't send your request: \(error.localizedDescription)"
+        }
+    }
+
     private func remove() async {
         isRemoving = true
         defer { isRemoving = false }
@@ -121,5 +152,6 @@ private struct Badge: View {
         ListingDetailView(listing: .preview)
     }
     .environment(ListingService())
+    .environment(PickupService())
     .environment(AuthService())
 }

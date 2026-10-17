@@ -165,6 +165,8 @@ blocks          blocker_id, blocked_id
 
 Row Level Security on every table. Impact totals come from a view over completed `handoffs`, so they cannot be edited directly.
 
+A conversation doubles as a pickup request. The receiver opens it from a listing, the giver reserves the item for one of the people who asked, and chat messages hang off the same row.
+
 ### 5.3 iOS code structure
 
 Build on the current folders.
@@ -214,7 +216,7 @@ Week counts assume one developer part-time. Each phase ends with a TestFlight bu
 ### Phase 2 — Handoffs (weeks 4–6)
 
 - In-app chat per item, with push notifications.
-- Reserve an item, then both sides confirm the handoff.
+- [x] Request an item, reserve it for one requester, then both sides confirm the handoff. A Pickups tab tracks each item from request to handoff.
 - Impact tab driven by real handoffs.
 - Report, block, and a basic moderation view.
 - Account deletion.
