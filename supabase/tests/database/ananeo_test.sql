@@ -1,5 +1,8 @@
 -- Run with: supabase test db
 begin;
+-- Act as postgres explicitly. On hosted runs the CLI connects with a temporary
+-- login role that cannot see the extensions schema where pgTAP lives.
+set local role postgres;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
@@ -24,7 +27,7 @@ select pg_temp.act_as('00000000-0000-0000-0000-00000000000a');
 insert into items (id, title, category, location)
 values ('10000000-0000-0000-0000-000000000001', 'Oak bookshelf', 'furniture', 'SRID=4326;POINT(-73.9442 40.6782)');
 
-reset role;
+set local role postgres;
 select ok(
     (select st_distance(location, 'SRID=4326;POINT(-73.9442 40.6782)'::geography) from items where id = '10000000-0000-0000-0000-000000000001') <= 401,
     'stored location stays within 400 m of the real point');
@@ -47,7 +50,7 @@ select is((select count(*) from nearby_items(40.6782, -73.9442, 5, 'books')), 0:
 select is((select count(*) from nearby_items(40.7580, -73.9855, 5)), 0::bigint, 'items outside the radius are excluded');
 
 update items set title = 'hacked' where id = '10000000-0000-0000-0000-000000000001';
-reset role;
+set local role postgres;
 select is((select title from items where id = '10000000-0000-0000-0000-000000000001'), 'Oak bookshelf', 'others cannot edit an item');
 
 -- Blocking hides listings both ways --------------------------------------------
@@ -89,7 +92,7 @@ select pg_temp.act_as('00000000-0000-0000-0000-00000000000b');
 select confirm_handoff((select id from h));
 select isnt((select completed_at from handoffs), null, 'both confirmations complete the handoff');
 
-reset role;
+set local role postgres;
 select is((select status from items where id = '10000000-0000-0000-0000-000000000001'), 'handed_off'::item_status, 'item is marked handed off');
 
 -- Impact ----------------------------------------------------------------------
@@ -101,7 +104,7 @@ select results_eq('select items_given, items_received from my_impact()', $$value
 select results_eq('select items_kept_moving, kg_diverted from community_impact()', $$values (1::bigint, 25.00::numeric)$$, 'community total');
 
 -- Challenge progress ----------------------------------------------------------
-reset role;
+set local role postgres;
 insert into challenges (id, title, goal_items, starts_at, ends_at)
 values ('30000000-0000-0000-0000-000000000001', 'Move-out Week', 500, now() - interval '1 day', now() + interval '6 days');
 select pg_temp.act_as('00000000-0000-0000-0000-00000000000a');
@@ -111,7 +114,7 @@ select results_eq(
     $$values (1::bigint, 1::bigint)$$, 'challenge counts handoffs by members');
 
 -- Privileges ------------------------------------------------------------------
-reset role;
+set local role postgres;
 set local role anon;
 select throws_ok('select count(*) from items', '42501', null, 'signed-out users cannot read items');
 select lives_ok('select count(*) from places', 'signed-out users can read places');
