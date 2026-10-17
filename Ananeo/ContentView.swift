@@ -21,6 +21,8 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .environment(ItemStore())
+        .environment(PlacesStore())
+        .environment(ListingService())
+        .environment(LocationService())
         .environment(AuthService())
 }

@@ -39,7 +39,28 @@ final class AuthService {
                 }
             }
         }
+        #if DEBUG
+        Task { await signInForLocalDevelopmentIfRequested() }
+        #endif
     }
+
+    #if DEBUG
+    /// Local development only. scripts/dev-simulator.sh passes a test account through the
+    /// environment so the simulator can run without an Apple ID. Ignored for hosted projects.
+    private func signInForLocalDevelopmentIfRequested() async {
+        let env = ProcessInfo.processInfo.environment
+        guard Backend.isLocal,
+              let email = env["ANANEO_DEV_EMAIL"],
+              let password = env["ANANEO_DEV_PASSWORD"],
+              client.auth.currentSession == nil
+        else { return }
+        do {
+            try await client.auth.signIn(email: email, password: password)
+        } catch {
+            errorMessage = "Local dev sign-in failed: \(error.localizedDescription)"
+        }
+    }
+    #endif
 
     // MARK: - Sign in with Apple
 
@@ -78,7 +99,7 @@ final class AuthService {
                 )
                 // Apple shares the name only on the very first sign-in, so save it right away.
                 if let name = Self.displayName(from: credential.fullName) {
-                    try? await client.from("profiles")
+                    _ = try? await client.from("profiles")
                         .update(["display_name": name])
                         .eq("id", value: session.user.id)
                         .execute()

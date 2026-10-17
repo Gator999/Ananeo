@@ -1,7 +1,9 @@
 import Foundation
 
+// These enums mirror the Postgres enums in supabase/migrations. Raw values must match exactly.
+
 enum ItemCategory: String, CaseIterable, Identifiable, Codable {
-    case furniture, clothing, electronics, tools, books, household
+    case furniture, clothing, electronics, tools, books, household, materials, other
 
     var id: String { rawValue }
 
@@ -15,35 +17,58 @@ enum ItemCategory: String, CaseIterable, Identifiable, Codable {
         case .tools: "wrench.and.screwdriver"
         case .books: "book"
         case .household: "house"
+        case .materials: "shippingbox"
+        case .other: "square.grid.2x2"
+        }
+    }
+}
+
+enum ItemCondition: String, CaseIterable, Identifiable, Codable {
+    case likeNew = "like_new"
+    case good
+    case worn
+    case needsRepair = "needs_repair"
+    case forParts = "for_parts"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .likeNew: "Like new"
+        case .good: "Good"
+        case .worn: "Worn"
+        case .needsRepair: "Needs repair"
+        case .forParts: "For parts"
+        }
+    }
+}
+
+enum ItemMode: String, CaseIterable, Identifiable, Codable {
+    case give, swap, parts
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .give: "Free"
+        case .swap: "Swap"
+        case .parts: "Parts"
         }
     }
 
-    /// Rough average weight in kilograms, used for the waste-diverted estimate.
-    var estimatedKilograms: Double {
+    var pickerTitle: String {
         switch self {
-        case .furniture: 25
-        case .clothing: 0.5
-        case .electronics: 3
-        case .tools: 2
-        case .books: 0.8
-        case .household: 1.5
+        case .give: "Give away"
+        case .swap: "Swap"
+        case .parts: "Parts"
         }
     }
 }
 
 enum ItemStatus: String, Codable {
-    case available, claimed, exchanged
-}
-
-struct Item: Identifiable, Codable, Hashable {
-    var id = UUID()
-    var title: String
-    var details: String
-    var category: ItemCategory
-    var distanceKm: Double
-    var isFree: Bool = true
-    var status: ItemStatus = .available
-    var listedAt = Date()
+    case available, reserved
+    case handedOff = "handed_off"
+    case removed
 }
 
 struct DonationCenter: Identifiable, Hashable {
@@ -51,5 +76,5 @@ struct DonationCenter: Identifiable, Hashable {
     let name: String
     let address: String
     let accepts: [ItemCategory]
-    let distanceKm: Double
+    let distanceMiles: Double
 }

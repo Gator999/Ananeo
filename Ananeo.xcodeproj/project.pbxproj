@@ -11,11 +11,11 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A1000001000000000000001 /* Ananeo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ananeo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1000010000000000000001 /* Ananeo.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Ananeo.xcconfig; sourceTree = "<group>"; };
 		B1000011000000000000001 /* Ananeo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ananeo.entitlements; sourceTree = "<group>"; };
 		B1000012000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B1000013000000000000001 /* Secrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
-		A1000001000000000000001 /* Ananeo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ananeo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -212,8 +212,8 @@
 			baseConfigurationReference = B1000010000000000000001 /* Ananeo.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = Config/Ananeo.entitlements;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/Ananeo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = GQP486F4VR;
@@ -221,6 +221,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Ananeo;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Ananeo uses your location to show items near you and to place your listings in an approximate area. Your exact location is never shown to others.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -244,8 +245,8 @@
 			baseConfigurationReference = B1000010000000000000001 /* Ananeo.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = Config/Ananeo.entitlements;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Config/Ananeo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = GQP486F4VR;
@@ -253,6 +254,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Ananeo;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Ananeo uses your location to show items near you and to place your listings in an approximate area. Your exact location is never shown to others.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

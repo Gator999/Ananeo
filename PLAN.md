@@ -204,7 +204,10 @@ Week counts assume one developer part-time. Each phase ends with a TestFlight bu
 - [x] Supabase schema with PostGIS and Row Level Security, with pgTAP tests (`supabase test db`).
 - [x] Sign in with Apple, profile creation, sign out, and account deletion.
 - [x] Hosted Supabase project (us-west-1) with schema pushed, tests passing, and Apple sign-in verified on device.
-- [ ] Post a listing with photos. Browse a nearby feed sorted by distance.
+- [x] Post a listing with up to 5 photos, resized to 1600 px with GPS metadata stripped. Browse a nearby feed sorted by distance, shown in miles.
+- [x] Location permission flow. Listing locations are fuzzed by the database.
+- [x] Impact tab reads real totals from confirmed handoffs.
+- [x] `scripts/dev-simulator.sh` runs the app against the local stack with a test account, no Apple ID needed.
 - Location permission flow and fuzzed listing location.
 - **Exit test:** two TestFlight users in the same city see each other's listings.
 

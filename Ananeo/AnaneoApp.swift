@@ -2,13 +2,17 @@ import SwiftUI
 
 @main
 struct AnaneoApp: App {
-    @State private var store = ItemStore()
+    @State private var places = PlacesStore()
+    @State private var listings = ListingService()
+    @State private var location = LocationService()
     @State private var auth = AuthService()
 
     var body: some Scene {
         WindowGroup {
             RootView()
-                .environment(store)
+                .environment(places)
+                .environment(listings)
+                .environment(location)
                 .environment(auth)
                 .task { auth.start() }
         }

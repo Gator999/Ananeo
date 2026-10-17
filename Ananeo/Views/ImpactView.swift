@@ -1,8 +1,13 @@
 import SwiftUI
 
+/// Personal and community totals, counted only from handoffs both sides confirmed.
 struct ImpactView: View {
-    @Environment(ItemStore.self) private var store
+    @Environment(ListingService.self) private var listings
     @Environment(AuthService.self) private var auth
+
+    @State private var mine = Impact()
+    @State private var community = CommunityImpact()
+    @State private var errorMessage: String?
     @State private var confirmingDelete = false
 
     var body: some View {
@@ -10,24 +15,37 @@ struct ImpactView: View {
             List {
                 Section {
                     HStack {
-                        ImpactStat(value: "\(store.exchangedItems.count)", label: "Items passed on")
+                        ImpactStat(value: "\(mine.itemsGiven)", label: "Items given")
                         Divider()
-                        ImpactStat(value: String(format: "%.1f kg", store.kilogramsDiverted), label: "Waste diverted")
+                        ImpactStat(value: "\(mine.itemsReceived)", label: "Items received")
+                        Divider()
+                        ImpactStat(value: String(format: "%.1f kg", mine.kgDiverted), label: "Kept from landfill")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical)
+                } header: {
+                    Text("You")
+                } footer: {
+                    if let errorMessage {
+                        Text(errorMessage).foregroundStyle(.red)
+                    } else if mine.itemsGiven + mine.itemsReceived == 0 {
+                        Text("Your totals grow each time a handoff is confirmed by both people.")
+                    }
+                }
+
+                Section("Everyone on Ananeo") {
+                    HStack {
+                        ImpactStat(value: "\(community.itemsKeptMoving)", label: "Items kept moving")
+                        Divider()
+                        ImpactStat(value: String(format: "%.0f kg", community.kgDiverted), label: "Kept from landfill")
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical)
                 }
-                Section("Completed exchanges") {
-                    if store.exchangedItems.isEmpty {
-                        Text("Nothing yet. Report an exchange from an item's page.")
-                            .foregroundStyle(.secondary)
-                    }
-                    ForEach(store.exchangedItems) { item in
-                        Label(item.title, systemImage: item.category.systemImage)
-                    }
-                }
             }
             .navigationTitle("Your Impact")
+            .refreshable { await load() }
+            .task(id: listings.revision) { await load() }
             .toolbar {
                 Menu {
                     Button("Sign Out") {
@@ -49,6 +67,18 @@ struct ImpactView: View {
             }
         }
     }
+
+    private func load() async {
+        do {
+            async let mineResult = listings.myImpact()
+            async let communityResult = listings.communityImpact()
+            (mine, community) = try await (mineResult, communityResult)
+            errorMessage = nil
+        } catch is CancellationError {
+        } catch {
+            errorMessage = "Couldn't load totals: \(error.localizedDescription)"
+        }
+    }
 }
 
 private struct ImpactStat: View {
@@ -57,8 +87,8 @@ private struct ImpactStat: View {
 
     var body: some View {
         VStack {
-            Text(value).font(.largeTitle.bold())
-            Text(label).font(.caption).foregroundStyle(.secondary)
+            Text(value).font(.title.bold()).minimumScaleFactor(0.6).lineLimit(1)
+            Text(label).font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
     }
@@ -66,6 +96,6 @@ private struct ImpactStat: View {
 
 #Preview {
     ImpactView()
-        .environment(ItemStore())
+        .environment(ListingService())
         .environment(AuthService())
 }
