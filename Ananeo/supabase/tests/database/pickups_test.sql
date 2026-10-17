@@ -176,12 +176,9 @@ select lives_ok(
 insert into blocks (blocker_id, blocked_id) values
     ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b'),
     ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000e');
-select set_eq(
-    $$select other_name from my_pickups() where item_id = '10000000-0000-0000-0000-000000000003'$$,
-    $$values ('Erin')$$,
-    'a block hides open requests but keeps a reservation visible');
-select lives_ok($$select cancel_reservation('10000000-0000-0000-0000-000000000003')$$, 'giver can still cancel it');
-select is((select count(*) from my_pickups() where item_id = '10000000-0000-0000-0000-000000000003'), 0::bigint, 'once cancelled, the blocked request is hidden too');
+select is((select count(*) from my_pickups() where item_id = '10000000-0000-0000-0000-000000000003'), 0::bigint, 'a block hides their requests');
+select is((select status::text from items where id = '10000000-0000-0000-0000-000000000003'), 'available', 'blocking ends the reservation and puts the item back');
+select is((select count(*) from handoffs where item_id = '10000000-0000-0000-0000-000000000003'), 0::bigint, 'the pending handoff is gone');
 
 -- Privileges ------------------------------------------------------------------
 set local role postgres;

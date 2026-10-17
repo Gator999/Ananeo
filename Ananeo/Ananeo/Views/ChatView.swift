@@ -6,6 +6,7 @@ struct ChatView: View {
     @Environment(ChatService.self) private var chat
     @Environment(PickupService.self) private var pickups
     @Environment(ListingService.self) private var listings
+    @Environment(SafetyService.self) private var safety
 
     /// The pickup as it was when the chat opened. The live one comes from the service.
     let pickup: Pickup
@@ -19,6 +20,10 @@ struct ChatView: View {
     @State private var confirmingHandoff = false
     @State private var isConfirming = false
     @State private var isCelebrating = false
+    @State private var reporting: ReportTarget?
+    @State private var confirmingBlock = false
+
+    private var isBlocked: Bool { safety.isBlocked(request.otherUserID) }
 
     private var livePickup: Pickup { pickups.pickup(for: pickup.id) ?? pickup }
     private var liveRequest: PickupRequest { livePickup.requests.first { $0.id == request.id } ?? request }
@@ -45,6 +50,16 @@ struct ChatView: View {
                         otherName: name,
                         isGetting: !livePickup.isGiver
                     )
+                    .contextMenu {
+                        Button("Copy", systemImage: "doc.on.doc") {
+                            UIPasteboard.general.string = message.body
+                        }
+                        if message.senderID == request.otherUserID {
+                            Button("Report Message", systemImage: "flag") {
+                                reporting = ReportTarget(kind: .message, id: message.id, userID: request.otherUserID, name: name)
+                            }
+                        }
+                    }
                 }
                 events
             }
@@ -68,9 +83,13 @@ struct ChatView: View {
         .safeAreaInset(edge: .top) { header }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 0) {
-                confirmCard
-                Composer(text: $draft, placeholder: "Message \(name)…", isSending: isSending, errorMessage: errorMessage) {
-                    Task { await send() }
+                if isBlocked {
+                    blockedNotice
+                } else {
+                    confirmCard
+                    Composer(text: $draft, placeholder: "Message \(name)…", isSending: isSending, errorMessage: errorMessage) {
+                        Task { await send() }
+                    }
                 }
             }
             .background(.bar)
@@ -83,6 +102,26 @@ struct ChatView: View {
         .hidesFloatingTabBar()
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("Report \(name)", systemImage: "flag") {
+                        reporting = ReportTarget(kind: .user, id: request.otherUserID, userID: request.otherUserID, name: name)
+                    }
+                    if !isBlocked {
+                        Button("Block \(name)", systemImage: "hand.raised", role: .destructive) { confirmingBlock = true }
+                    }
+                } label: {
+                    Label("More", systemImage: "ellipsis.circle")
+                }
+            }
+        }
+        .sheet(item: $reporting) { ReportView(target: $0) }
+        .confirmationDialog("Block \(name)?", isPresented: $confirmingBlock, titleVisibility: .visible) {
+            Button("Block", role: .destructive) { Task { await block() } }
+        } message: {
+            Text("You won't see each other's listings or be able to message each other, and any pickup in progress between you ends.")
+        }
         .confirmationDialog(
             livePickup.isGiver ? "Did \(name) pick it up?" : "Did you get it?",
             isPresented: $confirmingHandoff,
@@ -189,7 +228,45 @@ struct ChatView: View {
         }
     }
 
+    /// Takes the composer's place after a block.
+    private var blockedNotice: some View {
+        VStack(alignment: .leading, spacing: AnaneoTheme.Spacing.sm) {
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.red)
+            }
+            HStack(spacing: AnaneoTheme.Spacing.md) {
+                Text("You blocked \(name).")
+                    .font(.subheadline)
+                    .foregroundStyle(AnaneoTheme.smoke)
+                Spacer(minLength: 0)
+                Button("Unblock") { Task { await unblock() } }
+                    .buttonStyle(.pill(.secondary, expanded: false))
+            }
+        }
+        .padding(.horizontal, AnaneoTheme.Spacing.lg)
+        .padding(.vertical, AnaneoTheme.Spacing.md)
+    }
+
     // MARK: - Actions
+
+    private func block() async {
+        do {
+            try await safety.block(request.otherUserID)
+        } catch {
+            errorMessage = "Couldn't block: \(error.localizedDescription)"
+        }
+    }
+
+    private func unblock() async {
+        do {
+            try await safety.unblock(request.otherUserID)
+            errorMessage = nil
+        } catch {
+            errorMessage = "Couldn't unblock: \(error.localizedDescription)"
+        }
+    }
 
     /// Loads the history, then appends new messages until the screen goes away.
     private func load() async {
@@ -264,4 +341,5 @@ struct ChatView: View {
     .environment(ChatService.preview())
     .environment(PickupService.preview([pickup]))
     .environment(ListingService())
+    .environment(SafetyService())
 }

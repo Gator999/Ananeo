@@ -60,6 +60,7 @@ struct BrowseView: View {
 
 private struct NearbyFeed: View {
     @Environment(ListingService.self) private var listings
+    @Environment(SafetyService.self) private var safety
     let coordinate: CLLocationCoordinate2D
     let zoom: Namespace.ID
 
@@ -82,6 +83,7 @@ private struct NearbyFeed: View {
         let mode: ItemMode?
         let radiusMiles: Double
         let revision: Int
+        let blocks: Int
     }
 
     var body: some View {
@@ -97,7 +99,7 @@ private struct NearbyFeed: View {
             .padding(.bottom, AnaneoTheme.Spacing.xxl)
         }
         .refreshable { await load() }
-        .task(id: Query(coordinate: coordinate, category: category, mode: mode, radiusMiles: radiusMiles, revision: listings.revision)) {
+        .task(id: Query(coordinate: coordinate, category: category, mode: mode, radiusMiles: radiusMiles, revision: listings.revision, blocks: safety.revision)) {
             await load()
         }
         .sensoryFeedback(.selection, trigger: category)
@@ -238,6 +240,7 @@ private struct CommunityStrip: View {
     BrowseView()
         .environment(ListingService())
         .environment(LocationService())
+        .environment(SafetyService())
         .environment(PickupService())
         .environment(AuthService())
 }

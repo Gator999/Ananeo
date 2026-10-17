@@ -35,7 +35,8 @@ struct GiveFlow: View {
     @State private var step: Step = .snap
     @State private var draft = ListingDraft()
     @State private var pickerItems: [PhotosPickerItem] = []
-    @State private var photos: [Data] = []
+    @State private var photos: [PickedPhoto] = []
+    @State private var showingProhibited = false
     @State private var isLoadingPhotos = false
     @State private var isPosting = false
     @State private var errorMessage: String?
@@ -86,6 +87,7 @@ struct GiveFlow: View {
             .confirmationDialog("Discard this listing?", isPresented: $confirmingCancel, titleVisibility: .visible) {
                 Button("Discard", role: .destructive) { dismiss() }
             }
+            .sheet(isPresented: $showingProhibited) { ProhibitedItemsSheet() }
             .onChange(of: pickerItems) { _, items in
                 Task { await loadPhotos(items) }
             }
@@ -220,12 +222,8 @@ struct GiveFlow: View {
     private var photoStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: AnaneoTheme.Spacing.sm + 2) {
-                ForEach(Array(photos.enumerated()), id: \.offset) { index, data in
-                    PhotoThumbnail(data: data, isCover: index == 0) {
-                        if pickerItems.indices.contains(index) {
-                            pickerItems.remove(at: index)
-                        }
-                    }
+                ForEach(Array(photos.enumerated()), id: \.element.id) { index, photo in
+                    PhotoThumbnail(data: photo.data, isCover: index == 0) { remove(photo) }
                 }
                 if photos.count < ListingService.maxPhotos {
                     PhotosPicker(selection: $pickerItems, maxSelectionCount: ListingService.maxPhotos, selectionBehavior: .ordered, matching: .images) {
@@ -301,6 +299,9 @@ struct GiveFlow: View {
                 }
             }
             .animation(AnaneoMotion.settle(reduceMotion: reduceMotion), value: draft.mode)
+
+            Button("What can't be listed", systemImage: "nosign") { showingProhibited = true }
+                .buttonStyle(.pill(.secondary, expanded: false))
         }
         .onAppear { isTitleFocused = draft.title.isEmpty }
     }
@@ -311,7 +312,7 @@ struct GiveFlow: View {
                 Text("Ready to post").sectionLabel()
                 HStack(spacing: AnaneoTheme.Spacing.md) {
                     if let cover = photos.first {
-                        PhotoThumbnail(data: cover, isCover: false)
+                        PhotoThumbnail(data: cover.data, isCover: false)
                     }
                     VStack(alignment: .leading, spacing: AnaneoTheme.Spacing.xs + 2) {
                         Text(draft.trimmedTitle)
@@ -379,17 +380,30 @@ struct GiveFlow: View {
 
     private func loadPhotos(_ items: [PhotosPickerItem]) async {
         isLoadingPhotos = true
-        defer { isLoadingPhotos = false }
-        var loaded: [Data] = []
+        // A newer selection may still be loading. It clears the flag when it finishes.
+        defer { if items == pickerItems { isLoadingPhotos = false } }
+        // Photos still selected are already resized, so only new picks are loaded.
+        let alreadyLoaded = photos
+        var loaded: [PickedPhoto] = []
         for item in items {
+            if let photo = alreadyLoaded.first(where: { $0.item == item }) {
+                loaded.append(photo)
+                continue
+            }
             guard let raw = try? await item.loadTransferable(type: Data.self) else { continue }
             let prepared = await Task.detached(priority: .userInitiated) {
                 ListingService.preparePhoto(raw)
             }.value
-            if let prepared { loaded.append(prepared) }
+            if let prepared { loaded.append(PickedPhoto(item: item, data: prepared)) }
         }
         // Ignore stale results if the selection changed while loading.
         if items == pickerItems { photos = loaded }
+    }
+
+    /// Removes the photo and its picker selection together, so the two can't fall out of step.
+    private func remove(_ photo: PickedPhoto) {
+        photos.removeAll { $0.id == photo.id }
+        pickerItems.removeAll { $0 == photo.item }
     }
 
     private func post() async {
@@ -398,7 +412,7 @@ struct GiveFlow: View {
         isPosting = true
         defer { isPosting = false }
         do {
-            try await listings.create(draft, photos: photos, at: coordinate)
+            try await listings.create(draft, photos: photos.map(\.data), at: coordinate)
             draft = ListingDraft()
             pickerItems = []
             photos = []
@@ -407,6 +421,13 @@ struct GiveFlow: View {
             errorMessage = "Couldn't post: \(error.localizedDescription)"
         }
     }
+}
+
+/// A picked photo, resized and ready to upload, with the picker selection it came from.
+private struct PickedPhoto: Identifiable {
+    let id = UUID()
+    let item: PhotosPickerItem
+    let data: Data
 }
 
 /// One chosen photo, 84 points square, with a Cover tag on the first and a remove button when removable.

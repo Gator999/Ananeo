@@ -27,6 +27,7 @@ enum AppTab: Hashable, CaseIterable {
 struct ContentView: View {
     @Environment(PickupService.self) private var pickups
     @Environment(ChatService.self) private var chat
+    @Environment(SafetyService.self) private var safety
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var selection: AppTab = .browse
@@ -75,8 +76,10 @@ struct ContentView: View {
                 showPostedToast()
             }
         }
-        // Load pickups at launch so the tab badge is right before the tab is opened.
-        .task { try? await pickups.refresh() }
+        .task { try? await safety.refresh() }
+        // Load pickups at launch so the tab badge is right before the tab is opened, and again when
+        // blocks change, since blocking ends pickups in progress.
+        .task(id: safety.revision) { try? await pickups.refresh() }
         // Keep unread counts live while signed in. Stops when this view goes away at sign-out.
         .task { await chat.watchInbox() }
     }
@@ -120,6 +123,7 @@ private struct PostedToast: View {
         .environment(ListingService())
         .environment(PickupService.preview([.preview]))
         .environment(ChatService.preview())
+        .environment(SafetyService())
         .environment(LocationService())
         .environment(AuthService())
 }

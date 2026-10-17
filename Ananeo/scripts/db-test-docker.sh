@@ -54,6 +54,12 @@ end
 $$;
 grant usage on schema storage to anon, authenticated;
 grant all on storage.objects, storage.buckets to anon, authenticated;
+-- The auth service creates its sessions table; a ban deletes from it.
+create table if not exists auth.sessions (
+  id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users (id) on delete cascade,
+  created_at timestamptz default now(), updated_at timestamptz default now());
+grant all on auth.sessions to postgres;
+alter table auth.users add column if not exists banned_until timestamptz;
 SQL
 
 for m in migrations/*.sql; do

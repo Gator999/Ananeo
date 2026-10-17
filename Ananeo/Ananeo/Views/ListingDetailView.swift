@@ -6,6 +6,7 @@ struct ListingDetailView: View {
     @Environment(ListingService.self) private var listings
     @Environment(PickupService.self) private var pickups
     @Environment(AuthService.self) private var auth
+    @Environment(SafetyService.self) private var safety
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -17,6 +18,10 @@ struct ListingDetailView: View {
     @State private var errorMessage: String?
     /// The toolbar turns solid with the title once the hero has scrolled away.
     @State private var isPastHero = false
+    @State private var reporting: ReportTarget?
+    @State private var confirmingBlock = false
+
+    private var isBlocked: Bool { safety.isBlocked(listing.ownerID) }
 
     private let heroHeight: CGFloat = 430
 
@@ -64,6 +69,28 @@ struct ListingDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(isPastHero ? .visible : .hidden, for: .navigationBar)
         .toolbarColorScheme(isPastHero ? nil : .dark, for: .navigationBar)
+        .toolbar {
+            if !isMine {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button("Report Listing", systemImage: "flag") {
+                            reporting = ReportTarget(kind: .item, id: listing.id, userID: listing.ownerID, name: nil)
+                        }
+                        if !isBlocked {
+                            Button("Block This Person", systemImage: "hand.raised", role: .destructive) { confirmingBlock = true }
+                        }
+                    } label: {
+                        Label("More", systemImage: "ellipsis.circle")
+                    }
+                }
+            }
+        }
+        .sheet(item: $reporting) { ReportView(target: $0) }
+        .confirmationDialog("Block this person?", isPresented: $confirmingBlock, titleVisibility: .visible) {
+            Button("Block", role: .destructive) { Task { await block() } }
+        } message: {
+            Text("You won't see each other's listings or be able to message each other, and any pickup in progress between you ends.")
+        }
         .confirmationDialog("Remove this listing?", isPresented: $confirmingRemove, titleVisibility: .visible) {
             Button("Remove Listing", role: .destructive) { Task { await remove() } }
         } message: {
@@ -174,6 +201,12 @@ struct ListingDetailView: View {
                 Button("Remove Listing", systemImage: "trash", role: .destructive) { confirmingRemove = true }
                     .buttonStyle(.pill(.secondary))
                     .disabled(isRemoving)
+            } else if isBlocked {
+                Label("You blocked this person", systemImage: "hand.raised")
+                    .font(AnaneoTheme.Typography.button)
+                    .foregroundStyle(AnaneoTheme.smoke)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: AnaneoTheme.Size.pillButton)
             } else {
                 Button {
                     Task { await request() }
@@ -205,6 +238,7 @@ struct ListingDetailView: View {
                 : "\(requestCount) people asked for this. Choose who gets it in Pickups."
         }
         if isMine { return "Nobody has asked yet. It shows to people within a few miles." }
+        if isBlocked { return "Unblock them under Blocked People in the account menu to ask for this." }
         if hasRequested { return "Follow along in Pickups. If the giver chooses you, you'll both confirm the handoff there." }
         return "The giver chooses who gets it from everyone who asks."
     }
@@ -220,6 +254,14 @@ struct ListingDetailView: View {
             try await pickups.request(listing)
         } catch {
             errorMessage = "Couldn't send your request: \(error.localizedDescription)"
+        }
+    }
+
+    private func block() async {
+        do {
+            try await safety.block(listing.ownerID)
+        } catch {
+            errorMessage = "Couldn't block: \(error.localizedDescription)"
         }
     }
 
@@ -258,4 +300,5 @@ private struct TintChip: View {
     .environment(ListingService())
     .environment(PickupService())
     .environment(AuthService())
+    .environment(SafetyService())
 }

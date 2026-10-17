@@ -5,6 +5,7 @@ struct ImpactView: View {
     @Environment(ListingService.self) private var listings
     @Environment(PickupService.self) private var pickups
     @Environment(AuthService.self) private var auth
+    @Environment(SafetyService.self) private var safety
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var mine = Impact()
@@ -12,6 +13,9 @@ struct ImpactView: View {
     @State private var errorMessage: String?
     @State private var confirmingDelete = false
     @State private var shareImage: Image?
+    @State private var showingBlocked = false
+    @State private var showingModeration = false
+    @State private var showingTerms = false
 
     private var handoffs: Int { mine.itemsGiven + mine.itemsReceived }
 
@@ -44,6 +48,9 @@ struct ImpactView: View {
             .background(backdrop)
             .toolbar(.hidden, for: .navigationBar)
             .refreshable { await load() }
+            .sheet(isPresented: $showingBlocked) { BlockedPeopleView() }
+            .sheet(isPresented: $showingModeration) { ModerationView() }
+            .sheet(isPresented: $showingTerms) { TermsSheet() }
             .task(id: [listings.revision, pickups.revision]) { await load() }
             .confirmationDialog("Delete your account?", isPresented: $confirmingDelete, titleVisibility: .visible) {
                 Button("Delete Account", role: .destructive) {
@@ -75,6 +82,12 @@ struct ImpactView: View {
             .accessibilityAddTraits(.isHeader)
             Spacer()
             Menu {
+                Button("Blocked People", systemImage: "hand.raised") { showingBlocked = true }
+                if safety.isModerator {
+                    Button("Moderation", systemImage: "checkmark.shield") { showingModeration = true }
+                }
+                Button("Terms of Use", systemImage: "doc.text") { showingTerms = true }
+                Divider()
                 Button("Sign Out") {
                     Task { await auth.signOut() }
                 }
@@ -171,4 +184,5 @@ struct ImpactView: View {
         .environment(ListingService())
         .environment(PickupService())
         .environment(AuthService())
+        .environment(SafetyService())
 }
