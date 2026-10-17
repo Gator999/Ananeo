@@ -61,7 +61,7 @@ Notes for future work on this app. The product plan and roadmap live in PLAN.md.
 
 - There is no Xcode, so SwiftUI views can't be compiled there. Build in Xcode before merging.
 - Database tests work. Start `dockerd`, install the CLI with `npm install supabase` (GitHub release downloads may be blocked, npm is not), then run `supabase start` and `supabase test db`. Docker Hub sometimes rate-limits image pulls, and retrying usually works.
-- The tests assume an empty database. Run `supabase db reset` first if you've used the local stack for anything else.
+- The tests assume an empty database. Run `supabase db reset` first if you've used the local stack for anything else. `seed.sql` loads sample places on every start, so the two tests that count places clear the table inside their own transaction.
 - The full local stack runs too, so the web app can be driven end to end with Playwright against `supabase start`: use the developer sign-in form with two different emails for the two sides of a pickup.
 - The non-UI code can be compiled and run on Linux in the `swift:6.1-noble` Docker image, which gives a real compile check. Build a small package with `Models/`, `Shared/`, and the services that don't import UIKit or AuthenticationServices, against supabase-swift at the revision in `Package.resolved`. Linux needs three adjustments: a stand-in `Backend`, an in-memory `AuthLocalStorage`, and the linker flag `-Xlinker --allow-shlib-undefined`.
 - Linux Foundation can't open `ws://` sockets, so test Realtime with a Python `websockets` client that joins the same channel config instead.

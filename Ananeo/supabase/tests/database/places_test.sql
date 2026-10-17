@@ -7,6 +7,9 @@ set search_path = public, extensions;
 
 select plan(7);
 
+-- seed.sql adds sample places on `supabase start`; this test wants only its own rows. Rolled back with the rest.
+delete from public.places;
+
 -- Three places in Brooklyn and one in Manhattan, about 7 km away.
 insert into places (id, kind, name, address, location, accepts) values
     ('20000000-0000-0000-0000-000000000001', 'donation', 'Community Thrift', '120 Main St', 'SRID=4326;POINT(-73.9440 40.6790)', '{clothing,books,household}'),
