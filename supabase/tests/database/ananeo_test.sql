@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(26);
+select plan(29);
 
 -- Users -----------------------------------------------------------------------
 insert into auth.users (id, email, aud, role, raw_user_meta_data) values
@@ -109,6 +109,17 @@ insert into challenge_members (challenge_id) values ('30000000-0000-0000-0000-00
 select results_eq(
     $$select items_kept_moving, members from challenge_progress('30000000-0000-0000-0000-000000000001')$$,
     $$values (1::bigint, 1::bigint)$$, 'challenge counts handoffs by members');
+
+-- Privileges ------------------------------------------------------------------
+reset role;
+set local role anon;
+select throws_ok('select count(*) from items', '42501', null, 'signed-out users cannot read items');
+select lives_ok('select count(*) from places', 'signed-out users can read places');
+
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000a');
+select throws_ok(
+    $$update profiles set created_at = now() - interval '10 years' where id = '00000000-0000-0000-0000-00000000000a'$$,
+    '42501', null, 'profile columns outside the allowed set cannot be changed');
 
 select * from finish();
 rollback;

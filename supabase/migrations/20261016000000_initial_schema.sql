@@ -618,21 +618,46 @@ create policy "reports own" on public.reports
     for select to authenticated using (reporter_id = (select auth.uid()));
 
 -- ---------------------------------------------------------------------------
--- Function privileges: callable by signed-in users only
+-- Privileges
+-- Grants are explicit so the schema works with "Automatically expose new tables"
+-- turned off. Start from nothing, then grant only what each role needs.
+-- RLS policies above still decide which rows a granted role can touch.
 -- ---------------------------------------------------------------------------
 
-revoke execute on function public.reserve_item(uuid, uuid) from public, anon;
-revoke execute on function public.confirm_handoff(uuid) from public, anon;
-revoke execute on function public.cancel_reservation(uuid) from public, anon;
-revoke execute on function public.my_impact() from public, anon;
-revoke execute on function public.delete_account() from public, anon;
-revoke execute on function public.handle_new_user() from public, anon, authenticated;
+revoke all on all tables in schema public from anon, authenticated;
+revoke execute on all functions in schema public from public, anon, authenticated;
 
+grant usage on schema public to anon, authenticated;
+
+-- Reference data is readable before sign-in.
+grant select on public.places, public.challenges to anon, authenticated;
+
+grant select on public.profiles to authenticated;
+grant update (display_name, avatar_url, home_area) on public.profiles to authenticated;
+grant select, insert, delete on public.blocks to authenticated;
+grant select, insert, update, delete on public.items to authenticated;
+grant select, insert, update on public.swap_offers to authenticated;
+grant select, insert on public.conversations to authenticated;
+grant select, insert on public.messages to authenticated;
+grant select on public.handoffs to authenticated;
+grant select, insert, delete on public.challenge_members to authenticated;
+grant select, insert on public.reports to authenticated;
+
+-- Functions the app calls directly.
+grant execute on function public.nearby_items(double precision, double precision, double precision, public.item_category, public.item_mode, integer) to authenticated;
 grant execute on function public.reserve_item(uuid, uuid) to authenticated;
 grant execute on function public.confirm_handoff(uuid) to authenticated;
 grant execute on function public.cancel_reservation(uuid) to authenticated;
 grant execute on function public.my_impact() to authenticated;
+grant execute on function public.community_impact() to authenticated;
+grant execute on function public.challenge_progress(uuid) to authenticated;
 grant execute on function public.delete_account() to authenticated;
+
+-- Helpers that policies and the items trigger call as the signed-in user.
+grant execute on function public.is_blocked(uuid, uuid) to authenticated;
+grant execute on function public.is_conversation_member(uuid) to authenticated;
+grant execute on function public.default_kg(public.item_category) to authenticated;
+grant execute on function public.fuzz_point(extensions.geography, double precision) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Realtime for chat and challenge progress
