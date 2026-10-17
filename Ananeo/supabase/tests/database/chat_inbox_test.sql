@@ -5,7 +5,7 @@ set local role postgres;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 
-select plan(22);
+select plan(23);
 
 -- Users -----------------------------------------------------------------------
 -- Alice gives. Bob asks. Erin is an outsider.
@@ -26,6 +26,10 @@ insert into items (id, title, category, location) values
 select pg_temp.act_as('00000000-0000-0000-0000-00000000000b');
 insert into conversations (id, item_id, giver_id) values
     ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000a');
+
+select throws_ok(
+    $$insert into conversations (item_id, giver_id, created_at) values ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000a', '2001-01-01')$$,
+    '42501', null, 'cannot backdate a request');
 
 -- Sending ---------------------------------------------------------------------
 select is((select count(*) from my_chats()), 0::bigint, 'a request with no messages is not in the inbox');

@@ -86,8 +86,10 @@ $$;
 -- ---------------------------------------------------------------------------
 
 -- The server stamps the sender and time, so a client can't post as someone else or reorder a chat.
-revoke insert on public.messages from authenticated;
+-- Requests get the same treatment so a client can't backdate one to jump the giver's list.
+revoke insert on public.messages, public.conversations from authenticated;
 grant insert (conversation_id, body) on public.messages to authenticated;
+grant insert (id, item_id, giver_id) on public.conversations to authenticated;
 
 revoke all on public.conversation_reads from anon, authenticated;
 grant select on public.conversation_reads to authenticated;
