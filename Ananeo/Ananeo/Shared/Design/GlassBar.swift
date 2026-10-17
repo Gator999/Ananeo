@@ -6,7 +6,18 @@ import SwiftUI
 struct GlassBackground<S: Shape>: View {
     var shape: S
 
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     var body: some View {
+        if reduceTransparency {
+            solid
+        } else {
+            glass
+        }
+    }
+
+    @ViewBuilder
+    private var glass: some View {
         #if compiler(>=6.2)
         if #available(iOS 26.0, *) {
             Color.clear.glassEffect(.regular, in: shape)
@@ -21,6 +32,13 @@ struct GlassBackground<S: Shape>: View {
     private var material: some View {
         shape
             .fill(.regularMaterial)
+            .overlay { shape.stroke(AnaneoTheme.hairline, lineWidth: 1) }
+    }
+
+    /// Reduce Transparency: the card color with a hairline, no blur.
+    private var solid: some View {
+        shape
+            .fill(AnaneoTheme.surface)
             .overlay { shape.stroke(AnaneoTheme.hairline, lineWidth: 1) }
     }
 }

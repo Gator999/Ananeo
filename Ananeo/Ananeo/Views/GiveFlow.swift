@@ -263,7 +263,7 @@ struct GiveFlow: View {
                     .focused($isTitleFocused)
                     .submitLabel(.next)
                     .padding(.horizontal, AnaneoTheme.Spacing.lg)
-                    .frame(height: AnaneoTheme.Size.pillButton)
+                    .frame(minHeight: AnaneoTheme.Size.pillButton)
                     .background(AnaneoTheme.surface, in: RoundedRectangle(cornerRadius: AnaneoTheme.Radius.tile, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: AnaneoTheme.Radius.tile, style: .continuous)
@@ -295,7 +295,7 @@ struct GiveFlow: View {
                 if draft.mode == .swap {
                     TextField("What would you like in return?", text: $draft.wants)
                         .padding(.horizontal, AnaneoTheme.Spacing.lg)
-                        .frame(height: AnaneoTheme.Size.pillButton)
+                        .frame(minHeight: AnaneoTheme.Size.pillButton)
                         .background(AnaneoTheme.sun.opacity(0.16), in: RoundedRectangle(cornerRadius: AnaneoTheme.Radius.tile, style: .continuous))
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }

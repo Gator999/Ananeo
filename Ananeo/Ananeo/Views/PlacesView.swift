@@ -5,6 +5,7 @@ import SwiftUI
 struct PlacesView: View {
     @Environment(PlaceService.self) private var service
     @Environment(LocationService.self) private var location
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var kind: PlaceKind?
     @State private var places: [Place] = []
@@ -79,7 +80,7 @@ struct PlacesView: View {
         }
         .onChange(of: selection) { _, id in
             guard let place = places.first(where: { $0.id == id }) else { return }
-            withAnimation(AnaneoMotion.settle()) {
+            withAnimation(AnaneoMotion.settle(reduceMotion: reduceMotion)) {
                 position = .region(MKCoordinateRegion(center: place.coordinate, latitudinalMeters: 2500, longitudinalMeters: 2500))
             }
         }
@@ -104,7 +105,7 @@ struct PlacesView: View {
             Spacer()
             Button {
                 selection = nil
-                withAnimation(AnaneoMotion.settle()) {
+                withAnimation(AnaneoMotion.settle(reduceMotion: reduceMotion)) {
                     position = .region(MKCoordinateRegion(center: coordinate, latitudinalMeters: 8000, longitudinalMeters: 8000))
                 }
             } label: {
@@ -134,7 +135,7 @@ struct PlacesView: View {
                         .font(AnaneoTheme.Typography.chip)
                         .foregroundStyle(kind == placeKind ? AnaneoTheme.canvas : AnaneoTheme.ink)
                         .padding(.horizontal, AnaneoTheme.Spacing.md)
-                        .frame(height: AnaneoTheme.Size.chip)
+                        .frame(minHeight: AnaneoTheme.Size.chip)
                         .background {
                             if kind == placeKind {
                                 Capsule().fill(AnaneoTheme.ink)

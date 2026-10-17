@@ -18,6 +18,7 @@ struct FloatingTabBar: View {
         .padding(.horizontal, AnaneoTheme.Spacing.lg)
         .padding(.bottom, AnaneoTheme.Spacing.sm)
         .background(alignment: .bottom) { fade }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .sensoryFeedback(.selection, trigger: selection)
         .accessibilityElement(children: .contain)
     }

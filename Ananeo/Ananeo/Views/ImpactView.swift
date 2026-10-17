@@ -106,7 +106,7 @@ struct ImpactView: View {
                     .contentTransition(.numericText())
             }
             .padding(.horizontal, AnaneoTheme.Spacing.lg - 2)
-            .frame(height: 32)
+            .frame(minHeight: 32)
             .glass()
             .accessibilityElement(children: .combine)
         }

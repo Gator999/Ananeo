@@ -77,7 +77,7 @@ struct SignInView: View {
             }
             .foregroundStyle(.white)
             .padding(.horizontal, AnaneoTheme.Spacing.lg)
-            .frame(height: 40)
+            .frame(minHeight: 40)
             .background(.white.opacity(0.12), in: Capsule())
             .overlay { Capsule().strokeBorder(.white.opacity(0.22), lineWidth: 1) }
             .transition(.opacity.combined(with: .scale(scale: 0.95)))
@@ -93,7 +93,7 @@ struct SignInView: View {
                 Task { await auth.handle(result) }
             }
             .signInWithAppleButtonStyle(.white)
-            .frame(height: AnaneoTheme.Size.pillButton)
+            .frame(minHeight: AnaneoTheme.Size.pillButton)
             .clipShape(Capsule())
             .shadow(color: .black.opacity(0.35), radius: 17, y: 14)
             .disabled(auth.isWorking)

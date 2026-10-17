@@ -185,7 +185,7 @@ private struct PlaceCard: View {
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(AnaneoTheme.ink)
                         .padding(.horizontal, AnaneoTheme.Spacing.sm + 1)
-                        .frame(height: 24)
+                        .frame(minHeight: 24)
                         .background(AnaneoTheme.tile, in: Capsule())
                 }
             }

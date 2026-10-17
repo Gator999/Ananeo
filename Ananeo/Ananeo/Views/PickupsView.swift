@@ -162,7 +162,7 @@ private struct SegmentedPill: View {
                         .font(.subheadline.weight(isSelected ? .bold : .semibold))
                         .foregroundStyle(isSelected ? AnaneoTheme.canvas : AnaneoTheme.ink)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 38)
+                        .frame(minHeight: 38)
                         .background {
                             if isSelected {
                                 Capsule()

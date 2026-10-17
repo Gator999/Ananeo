@@ -231,6 +231,7 @@ Week counts assume one developer part-time. Each phase ends with a TestFlight bu
 
 ### Phase 4 — Community and launch (weeks 10–12)
 
+- [x] New look across every screen, built in five phases from the Ananeo UI Redesign Plan doc. Device checks in `DEVICE_CHECKLIST.md`.
 - Challenges with a live progress bar.
 - Onboarding that explains the mission in three screens.
 - App Store screenshots, privacy labels, and review notes describing moderation.

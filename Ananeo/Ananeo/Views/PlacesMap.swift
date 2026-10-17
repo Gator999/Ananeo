@@ -43,7 +43,7 @@ private struct PlacePin: View {
                 .font(.caption.weight(.bold))
                 .foregroundStyle(AnaneoTheme.canvas)
                 .padding(.horizontal, AnaneoTheme.Spacing.md)
-                .frame(height: 30)
+                .frame(minHeight: 30)
                 .background(AnaneoTheme.ink, in: Capsule())
                 .shadow(color: AnaneoTheme.shadow.opacity(0.25), radius: 9, y: 8)
                 .padding(.bottom, AnaneoTheme.Spacing.xs + 2)

@@ -7,6 +7,7 @@ struct ListingDetailView: View {
     @Environment(PickupService.self) private var pickups
     @Environment(AuthService.self) private var auth
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     let listing: Listing
 
@@ -143,7 +144,7 @@ struct ListingDetailView: View {
                     .font(AnaneoTheme.Typography.modeChip)
                     .foregroundStyle(AnaneoTheme.ink)
                     .padding(.horizontal, AnaneoTheme.Spacing.md - 2)
-                    .frame(height: AnaneoTheme.Size.modeChip)
+                    .frame(minHeight: AnaneoTheme.Size.modeChip)
                     .glass()
                     .padding(AnaneoTheme.Spacing.md)
             }
@@ -182,7 +183,7 @@ struct ListingDetailView: View {
                 }
                 .buttonStyle(.pill(hasRequested ? .secondary : .primary))
                 .disabled(isRequesting)
-                .animation(AnaneoMotion.settle(), value: hasRequested)
+                .animation(AnaneoMotion.settle(reduceMotion: reduceMotion), value: hasRequested)
                 .sensoryFeedback(.success, trigger: hasRequested)
             }
             Text(footer)
@@ -245,7 +246,7 @@ private struct TintChip: View {
             .font(AnaneoTheme.Typography.chip)
             .foregroundStyle(AnaneoTheme.forest)
             .padding(.horizontal, AnaneoTheme.Spacing.md)
-            .frame(height: AnaneoTheme.Size.chip)
+            .frame(minHeight: AnaneoTheme.Size.chip)
             .background(tint.opacity(0.15), in: Capsule())
     }
 }

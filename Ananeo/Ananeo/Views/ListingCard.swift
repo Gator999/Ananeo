@@ -44,7 +44,7 @@ struct ListingCard: View {
                         .numerals(.caption)
                         .foregroundStyle(AnaneoTheme.ink)
                         .padding(.horizontal, AnaneoTheme.Spacing.sm + 2)
-                        .frame(height: AnaneoTheme.Size.modeChip)
+                        .frame(minHeight: AnaneoTheme.Size.modeChip)
                         .glass()
                         .padding(AnaneoTheme.Spacing.sm + 2)
                 }

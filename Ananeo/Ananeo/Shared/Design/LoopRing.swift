@@ -101,9 +101,14 @@ struct LoopArrowShape: Shape {
         let center = CGPoint(x: rect.midX, y: rect.midY)
         let circle = CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
 
+        // Butt caps, then a round cap drawn at the start only: the arrowhead covers the end.
         var path = Path(ellipseIn: circle)
             .trimmedPath(from: from, to: to)
-            .strokedPath(StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+            .strokedPath(StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
+
+        let startAngle = from * 2 * .pi
+        let start = CGPoint(x: center.x + radius * CGFloat(cos(startAngle)), y: center.y + radius * CGFloat(sin(startAngle)))
+        path.addEllipse(in: CGRect(x: start.x - lineWidth / 2, y: start.y - lineWidth / 2, width: lineWidth, height: lineWidth))
 
         let angle = to * 2 * .pi
         let end = CGPoint(x: center.x + radius * CGFloat(cos(angle)), y: center.y + radius * CGFloat(sin(angle)))

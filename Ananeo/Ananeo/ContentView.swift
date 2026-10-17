@@ -27,6 +27,7 @@ enum AppTab: Hashable, CaseIterable {
 struct ContentView: View {
     @Environment(PickupService.self) private var pickups
     @Environment(ChatService.self) private var chat
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var selection: AppTab = .browse
     @State private var isGiving = false
@@ -58,7 +59,7 @@ struct ContentView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(AnaneoMotion.settle(), value: isBarHidden)
+        .animation(AnaneoMotion.settle(reduceMotion: reduceMotion), value: isBarHidden)
         .overlay(alignment: .top) {
             if showsPostedToast {
                 PostedToast()
@@ -91,10 +92,10 @@ struct ContentView: View {
     }
 
     private func showPostedToast() {
-        withAnimation(AnaneoMotion.settle()) { showsPostedToast = true }
+        withAnimation(AnaneoMotion.settle(reduceMotion: reduceMotion)) { showsPostedToast = true }
         Task {
             try? await Task.sleep(for: .seconds(2.5))
-            withAnimation(AnaneoMotion.settle()) { showsPostedToast = false }
+            withAnimation(AnaneoMotion.settle(reduceMotion: reduceMotion)) { showsPostedToast = false }
         }
     }
 }
@@ -106,7 +107,7 @@ private struct PostedToast: View {
             .font(.subheadline.weight(.bold))
             .foregroundStyle(AnaneoTheme.ink)
             .padding(.horizontal, AnaneoTheme.Spacing.lg)
-            .frame(height: 44)
+            .frame(minHeight: 44)
             .glass()
             .shadow(color: AnaneoTheme.shadow.opacity(0.16), radius: 12, y: 8)
             .padding(.top, AnaneoTheme.Spacing.sm)

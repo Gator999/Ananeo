@@ -19,7 +19,7 @@ struct Chip: View {
         .font(AnaneoTheme.Typography.chip)
         .foregroundStyle(isSelected ? AnaneoTheme.canvas : AnaneoTheme.ink)
         .padding(.horizontal, isSelected ? AnaneoTheme.Spacing.lg - 2 : AnaneoTheme.Spacing.md)
-        .frame(height: AnaneoTheme.Size.chip)
+        .frame(minHeight: AnaneoTheme.Size.chip)
         .background {
             if isSelected {
                 Capsule().fill(AnaneoTheme.ink)
@@ -41,7 +41,7 @@ struct ModeChip: View {
             .font(AnaneoTheme.Typography.modeChip)
             .foregroundStyle(mode == .swap ? AnaneoTheme.forest : .white)
             .padding(.horizontal, AnaneoTheme.Spacing.md - 2)
-            .frame(height: AnaneoTheme.Size.modeChip)
+            .frame(minHeight: AnaneoTheme.Size.modeChip)
             .background(AnaneoTheme.color(for: mode), in: Capsule())
     }
 }

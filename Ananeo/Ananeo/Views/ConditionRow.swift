@@ -31,7 +31,7 @@ struct ConditionRow: View {
                 .minimumScaleFactor(0.8)
                 .foregroundStyle(isSelected ? AnaneoTheme.ink : (needsWork ? AnaneoTheme.clay : AnaneoTheme.smoke))
                 .frame(maxWidth: .infinity)
-                .frame(height: 36)
+                .frame(minHeight: 36)
                 .background {
                     if isSelected {
                         Capsule()

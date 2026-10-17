@@ -25,7 +25,7 @@ struct PillButtonStyle: ButtonStyle {
             .foregroundStyle(foreground(for: configuration.role))
             .padding(.horizontal, AnaneoTheme.Spacing.xl)
             .frame(maxWidth: isExpanded ? CGFloat.infinity : nil)
-            .frame(height: AnaneoTheme.Size.pillButton)
+            .frame(minHeight: AnaneoTheme.Size.pillButton)
             .background(background, in: Capsule())
             .overlay { highlight }
             .shadow(color: shadow, radius: 12, y: 6)

@@ -148,7 +148,7 @@ struct PickupCard: View {
                     .font(AnaneoTheme.Typography.modeChip)
                     .foregroundStyle(.white)
                     .padding(.horizontal, AnaneoTheme.Spacing.sm + 2)
-                    .frame(height: 26)
+                    .frame(minHeight: 26)
                     .background(accent, in: Capsule())
             } else if pickup.stage == .reserved {
                 LoopRing(progress: 0.75, lineWidth: 5)
@@ -159,7 +159,7 @@ struct PickupCard: View {
                     .font(AnaneoTheme.Typography.modeChip)
                     .foregroundStyle(.white)
                     .padding(.horizontal, AnaneoTheme.Spacing.sm)
-                    .frame(height: 24)
+                    .frame(minHeight: 24)
                     .background(AnaneoTheme.clay, in: Capsule())
                     .accessibilityLabel("\(unread) unread messages")
             }
