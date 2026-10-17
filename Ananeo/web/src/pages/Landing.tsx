@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { lbs } from '../lib/format'
 import { isConfigured } from '../lib/supabase'
 import type { CommunityImpact } from '../lib/types'
 import { fetchCommunityImpact } from '../services/listings'
 
-const WEIGHTS: [string, string][] = [
-  ['Furniture', '25 kg'],
-  ['Materials', '5 kg'],
-  ['Electronics', '3 kg'],
-  ['Tools', '2 kg'],
-  ['Household', '1.5 kg'],
-  ['Books', '0.8 kg'],
-  ['Clothing', '0.5 kg'],
-  ['Other', '1 kg'],
+/** Default estimate per category, in kilograms as stored by `default_kg` in the database. Shown in pounds. */
+const WEIGHTS: [string, number][] = [
+  ['Furniture', 25],
+  ['Materials', 5],
+  ['Electronics', 3],
+  ['Tools', 2],
+  ['Household', 1.5],
+  ['Books', 0.8],
+  ['Clothing', 0.5],
+  ['Other', 1],
 ]
 
 /** The public site at ananeo.app: what Ananeo is, how it works, and how the impact numbers are counted. */
@@ -67,7 +69,7 @@ export function Landing() {
         <div className="band">
           <div className="stats">
             <div className="stat"><b>{community ? community.items_kept_moving.toLocaleString() : '—'}</b><span>Items kept moving</span></div>
-            <div className="stat"><b>{community ? `${Math.round(community.kg_diverted).toLocaleString()} kg` : '—'}</b><span>Kept out of landfill</span></div>
+            <div className="stat"><b>{community ? lbs(community.kg_diverted, 0) : '—'}</b><span>Kept out of landfill</span></div>
           </div>
           <p className="caption center" style={{ marginTop: 12 }}>Live totals. Only handoffs confirmed by both people are counted.</p>
         </div>
@@ -91,7 +93,7 @@ export function Landing() {
           <div className="card feature"><div className="icon">🔁</div><h3>Exchange</h3><p>Mark a listing as open to swap and say what you'd like in return. No money changes hands.</p></div>
           <div className="card feature"><div className="icon">📍</div><h3>Donate</h3><p>A map of donation centers, thrift stores, e-waste drop-offs, and textile bins, filtered by what they accept.</p></div>
           <div className="card feature"><div className="icon">🔧</div><h3>Repair and repurpose</h3><p>List things that need a fix, or offer them for parts and materials. Broken isn't worthless.</p></div>
-          <div className="card feature"><div className="icon">🌱</div><h3>Impact</h3><p>Items given, items received, and kilograms kept out of landfill, for you and for everyone.</p></div>
+          <div className="card feature"><div className="icon">🌱</div><h3>Impact</h3><p>Items given, items received, and pounds kept out of landfill, for you and for everyone.</p></div>
           <div className="card feature"><div className="icon">🏘️</div><h3>Community challenges</h3><p>Move-out week, campus drives, building clear-outs. Join one and watch the shared progress bar move.</p></div>
         </div>
       </section>
@@ -104,7 +106,7 @@ export function Landing() {
             <h3>What counts</h3>
             <p className="muted small">An item counts once, and only after both the giver and the receiver confirm the handoff in the app. Listings, requests, and reservations never count on their own. Removed listings never count.</p>
             <h3>Weight estimates</h3>
-            <p className="muted small">Every item carries a weight estimate in kilograms, set from its category when it's listed. A weight band you can set yourself is planned. Totals are the sum of those estimates over confirmed handoffs.</p>
+            <p className="muted small">Every item carries a weight estimate in pounds, set from its category when it's listed. A weight band you can set yourself is planned. Totals are the sum of those estimates over confirmed handoffs.</p>
             <h3>What we don't claim</h3>
             <p className="muted small">No CO₂-equivalent figures yet. When they come, they'll use the EPA WARM factors and be labeled as estimates.</p>
           </div>
@@ -114,7 +116,7 @@ export function Landing() {
               <thead><tr><th>Category</th><th>Estimate per item</th></tr></thead>
               <tbody>
                 {WEIGHTS.map(([category, weight]) => (
-                  <tr key={category}><td>{category}</td><td>{weight}</td></tr>
+                  <tr key={category}><td>{category}</td><td>{lbs(weight)}</td></tr>
                 ))}
               </tbody>
             </table>

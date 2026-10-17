@@ -42,6 +42,16 @@ export function monthDay(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-export function kg(value: number, digits = 1): string {
-  return `${Number(value).toFixed(digits)} kg`
+/** The database works in kilograms. The site shows pounds. */
+export const LB_PER_KG = 2.20462262185
+
+export function lbsFromKg(kg: number): number {
+  return Number(kg) * LB_PER_KG
+}
+
+/** A kilogram value shown in pounds, like "55.1 lbs" or "11 lbs". */
+export function lbs(kg: number, digits = 1): string {
+  const value = lbsFromKg(kg)
+  const text = digits === 0 ? Math.round(value).toLocaleString() : Number(value.toFixed(digits)).toLocaleString()
+  return `${text} lbs`
 }

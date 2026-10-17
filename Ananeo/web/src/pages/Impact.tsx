@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Confirm, Stat } from '../components/ui'
-import { kg } from '../lib/format'
+import { lbs } from '../lib/format'
 import { errorMessage } from '../lib/supabase'
 import type { CommunityImpact, Impact as MyImpact } from '../lib/types'
 import { useAuth } from '../services/auth'
@@ -55,7 +55,7 @@ export function Impact() {
         <div className="stats">
           <Stat value={String(mine.items_given)} label="Items given" />
           <Stat value={String(mine.items_received)} label="Items received" />
-          <Stat value={kg(mine.kg_diverted)} label="Kept from landfill" />
+          <Stat value={lbs(mine.kg_diverted)} label="Kept from landfill" />
         </div>
       </div>
       {error ? (
@@ -68,7 +68,7 @@ export function Impact() {
       <div className="card">
         <div className="stats">
           <Stat value={String(community.items_kept_moving)} label="Items kept moving" />
-          <Stat value={kg(community.kg_diverted, 0)} label="Kept from landfill" />
+          <Stat value={lbs(community.kg_diverted, 0)} label="Kept from landfill" />
         </div>
       </div>
       <p className="caption">
