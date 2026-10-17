@@ -1,6 +1,6 @@
 # Ananeo screenshots
 
-Presentation images of each screen, 1179 × 2556 px (iPhone 6.1" at 3x). `00-overview.png` puts all nine on one slide.
+Presentation images of each screen, 1179 × 2556 px (iPhone 6.1" at 3x). `00-overview.png` puts all nine on one slide. `accent-options.png` shows Browse and Pickups in four candidate tint colors.
 
 These were rendered from the SwiftUI views' layout and sample data, not captured from the iOS Simulator, so item photos appear as the app's category placeholders. To capture real ones instead, run the app in the Simulator and grab the screen:
 
