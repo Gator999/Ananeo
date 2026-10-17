@@ -97,7 +97,7 @@ and redeploys on every push to `main`. Preview builds run for pull requests.
 - Listing locations come from the browser's Geolocation API and are fuzzed by the database before
   storage, exactly as on iOS. The last fix is remembered in `localStorage` so the feed opens without a prompt.
 - Row Level Security decides what each signed-in user can read; the publishable key is not a secret.
-- `public/_headers` sets security headers; `public/_redirects` keeps the SPA working if the site is
-  ever served from Cloudflare Pages instead of Workers.
+- `public/_headers` sets security headers. Single-page routing comes from `not_found_handling` in
+  `wrangler.jsonc`; don't add a `_redirects` catch-all, Workers rejects it as a redirect loop.
 - There is no server-side rendering, so a shared listing link shows the generic page preview. Public
   listing pages with their own previews are on the roadmap in `PLAN.md`.
