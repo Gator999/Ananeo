@@ -3,6 +3,7 @@ import SwiftUI
 /// Personal and community totals, counted only from handoffs both sides confirmed.
 struct ImpactView: View {
     @Environment(ListingService.self) private var listings
+    @Environment(PickupService.self) private var pickups
     @Environment(AuthService.self) private var auth
 
     @State private var mine = Impact()
@@ -45,7 +46,7 @@ struct ImpactView: View {
             }
             .navigationTitle("Your Impact")
             .refreshable { await load() }
-            .task(id: listings.revision) { await load() }
+            .task(id: [listings.revision, pickups.revision]) { await load() }
             .toolbar {
                 Menu {
                     Button("Sign Out") {
@@ -97,5 +98,6 @@ private struct ImpactStat: View {
 #Preview {
     ImpactView()
         .environment(ListingService())
+        .environment(PickupService())
         .environment(AuthService())
 }
