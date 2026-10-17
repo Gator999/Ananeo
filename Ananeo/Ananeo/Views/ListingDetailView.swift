@@ -5,6 +5,7 @@ struct ListingDetailView: View {
     @Environment(PickupService.self) private var pickups
     @Environment(ChatService.self) private var chat
     @Environment(AuthService.self) private var auth
+    @Environment(SafetyService.self) private var safety
     @Environment(\.dismiss) private var dismiss
 
     let listing: Listing
@@ -14,6 +15,8 @@ struct ListingDetailView: View {
     @State private var isRequesting = false
     @State private var composingRequest = false
     @State private var requestNote = ""
+    @State private var reporting: ReportTarget?
+    @State private var confirmingBlock = false
     @State private var errorMessage: String?
 
     private var isMine: Bool {
@@ -65,6 +68,9 @@ struct ListingDetailView: View {
                 if isMine {
                     Button("Remove Listing", role: .destructive) { confirmingRemove = true }
                         .disabled(isRemoving)
+                } else if safety.isBlocked(listing.ownerID) {
+                    Label("You blocked this person", systemImage: "hand.raised")
+                        .foregroundStyle(.secondary)
                 } else if hasRequested {
                     Label("Requested", systemImage: "checkmark.circle.fill")
                         .foregroundStyle(.tint)
@@ -79,13 +85,33 @@ struct ListingDetailView: View {
                     Text(requestCount == 1 ? "1 person asked for this. Choose who gets it in Pickups." : "\(requestCount) people asked for this. Choose who gets it in Pickups.")
                 } else if hasRequested {
                     Text("Message the giver and follow along in Pickups. If they choose you, you'll both confirm the handoff there.")
-                } else if !isMine {
+                } else if !isMine && !safety.isBlocked(listing.ownerID) {
                     Text("The giver chooses who gets it from everyone who asks.")
                 }
             }
         }
         .navigationTitle(listing.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if !isMine {
+                Menu {
+                    Button("Report Listing", systemImage: "flag") {
+                        reporting = ReportTarget(kind: .item, id: listing.id, userID: listing.ownerID, name: nil)
+                    }
+                    if !safety.isBlocked(listing.ownerID) {
+                        Button("Block This Person", systemImage: "hand.raised", role: .destructive) { confirmingBlock = true }
+                    }
+                } label: {
+                    Label("More", systemImage: "ellipsis.circle")
+                }
+            }
+        }
+        .sheet(item: $reporting) { ReportView(target: $0) }
+        .confirmationDialog("Block this person?", isPresented: $confirmingBlock, titleVisibility: .visible) {
+            Button("Block", role: .destructive) { Task { await block() } }
+        } message: {
+            Text("You won't see each other's listings or be able to message each other, and any pickup in progress between you ends.")
+        }
         .alert("Request Pickup", isPresented: $composingRequest) {
             TextField("Message (optional)", text: $requestNote)
             Button("Send Request") { Task { await request() } }
@@ -141,6 +167,14 @@ struct ListingDetailView: View {
         }
     }
 
+    private func block() async {
+        do {
+            try await safety.block(listing.ownerID)
+        } catch {
+            errorMessage = "Couldn't block: \(error.localizedDescription)"
+        }
+    }
+
     private func remove() async {
         isRemoving = true
         defer { isRemoving = false }
@@ -173,4 +207,5 @@ private struct Badge: View {
     .environment(PickupService())
     .environment(ChatService())
     .environment(AuthService())
+    .environment(SafetyService())
 }

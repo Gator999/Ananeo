@@ -19,7 +19,11 @@ struct PickupDetailView: View {
         if let pickup = pickups.pickup(for: itemID) {
             content(pickup)
         } else {
-            ContentUnavailableView("No Longer in Pickups", systemImage: "tray")
+            ContentUnavailableView(
+                "No Longer in Pickups",
+                systemImage: "tray",
+                description: Text("The request was withdrawn, or one of you blocked the other.")
+            )
         }
     }
 
@@ -108,7 +112,7 @@ struct PickupDetailView: View {
             Section {
                 ForEach(pickup.requests) { request in
                     NavigationLink {
-                        ChatView(conversationID: request.id, otherName: request.otherName)
+                        ChatView(conversationID: request.id, otherUserID: request.otherUserID, otherName: request.otherName)
                     } label: {
                         HStack {
                             RequesterLabel(request: request)
@@ -144,7 +148,7 @@ struct PickupDetailView: View {
                     Section("Also Asked") {
                         ForEach(others) { request in
                             NavigationLink {
-                                ChatView(conversationID: request.id, otherName: request.otherName)
+                                ChatView(conversationID: request.id, otherUserID: request.otherUserID, otherName: request.otherName)
                             } label: {
                                 RequesterLabel(request: request)
                             }
@@ -220,7 +224,7 @@ struct PickupDetailView: View {
 
     private func chatLink(_ request: PickupRequest) -> some View {
         NavigationLink {
-            ChatView(conversationID: request.id, otherName: request.otherName)
+            ChatView(conversationID: request.id, otherUserID: request.otherUserID, otherName: request.otherName)
         } label: {
             HStack {
                 Label("Message \(request.otherName)", systemImage: "bubble.left.and.bubble.right")
@@ -314,4 +318,5 @@ private struct ConfirmationStatus: View {
     .environment(ListingService())
     .environment(ChatService.preview([]))
     .environment(AuthService())
+    .environment(SafetyService())
 }

@@ -6,6 +6,7 @@ struct AnaneoApp: App {
     @State private var listings = ListingService()
     @State private var pickups = PickupService()
     @State private var chat = ChatService()
+    @State private var safety = SafetyService()
     @State private var location = LocationService()
     @State private var auth = AuthService()
 
@@ -16,6 +17,7 @@ struct AnaneoApp: App {
                 .environment(listings)
                 .environment(pickups)
                 .environment(chat)
+                .environment(safety)
                 .environment(location)
                 .environment(auth)
                 .task { auth.start() }

@@ -5,6 +5,7 @@ struct RootView: View {
     @Environment(AuthService.self) private var auth
     @Environment(PickupService.self) private var pickups
     @Environment(ChatService.self) private var chat
+    @Environment(SafetyService.self) private var safety
 
     var body: some View {
         Group {
@@ -18,10 +19,11 @@ struct RootView: View {
             }
         }
         .animation(.default, value: auth.state)
-        // One account's pickups and chats must never show for the next.
+        // One account's pickups, chats, and blocks must never show for the next.
         .onChange(of: auth.state) {
             pickups.reset()
             chat.reset()
+            safety.reset()
         }
     }
 }

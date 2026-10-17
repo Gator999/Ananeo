@@ -56,13 +56,23 @@ final class ChatService {
         let body: String
     }
 
+    struct CantMessageError: LocalizedError {
+        var errorDescription: String? { "You can't message this person." }
+    }
+
     func send(_ body: String, in conversationID: UUID) async throws {
-        let message: Message = try await client.from("messages")
-            .insert(NewMessage(conversation_id: conversationID, body: body), returning: .representation)
-            .select()
-            .single()
-            .execute()
-            .value
+        let message: Message
+        do {
+            message = try await client.from("messages")
+                .insert(NewMessage(conversation_id: conversationID, body: body), returning: .representation)
+                .select()
+                .single()
+                .execute()
+                .value
+        } catch let error as PostgrestError where error.code == "42501" {
+            // One of you has blocked the other.
+            throw CantMessageError()
+        }
         add([message])
         revision += 1
     }

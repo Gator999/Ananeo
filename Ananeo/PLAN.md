@@ -219,7 +219,7 @@ Week counts assume one developer part-time. Each phase ends with a TestFlight bu
 - Push notifications for new messages and reservations.
 - [x] Request an item, reserve it for one requester, then both sides confirm the handoff. A Pickups tab tracks each item from request to handoff.
 - Impact tab driven by real handoffs.
-- Report, block, and a basic moderation view.
+- [x] Report listings, messages, and people. Block people, which also ends any pickup in progress between you. A moderation queue for moderators, with remove and ban.
 - Account deletion.
 - **Exit test:** a full give-and-pickup loop completes, and impact updates for both users.
 

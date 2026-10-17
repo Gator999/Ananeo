@@ -4,15 +4,19 @@ import SwiftUI
 struct ChatView: View {
     @Environment(ChatService.self) private var chat
     @Environment(AuthService.self) private var auth
+    @Environment(SafetyService.self) private var safety
     @Environment(\.scenePhase) private var scenePhase
 
     let conversationID: UUID
+    let otherUserID: UUID
     let otherName: String
 
     @State private var draft = ""
     @State private var isSending = false
     @State private var hasLoaded = false
     @State private var errorMessage: String?
+    @State private var reporting: ReportTarget?
+    @State private var confirmingBlock = false
 
     private var messages: [Message] { chat.messages(in: conversationID) }
 
@@ -39,6 +43,16 @@ struct ChatView: View {
                         }
                         MessageBubble(message: message, isMine: message.senderID == myID)
                             .id(message.id)
+                            .contextMenu {
+                                Button("Copy", systemImage: "doc.on.doc") {
+                                    UIPasteboard.general.string = message.body
+                                }
+                                if message.senderID != myID {
+                                    Button("Report Message", systemImage: "flag") {
+                                        reporting = ReportTarget(kind: .message, id: message.id, userID: otherUserID, name: otherName)
+                                    }
+                                }
+                            }
                     }
                 }
                 .padding()
@@ -67,9 +81,33 @@ struct ChatView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .bottom) { composer }
+        .safeAreaInset(edge: .bottom) {
+            if safety.isBlocked(otherUserID) {
+                blockedNotice
+            } else {
+                composer
+            }
+        }
         .navigationTitle(otherName)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            Menu {
+                Button("Report \(otherName)", systemImage: "flag") {
+                    reporting = ReportTarget(kind: .user, id: otherUserID, userID: otherUserID, name: otherName)
+                }
+                if !safety.isBlocked(otherUserID) {
+                    Button("Block \(otherName)", systemImage: "hand.raised", role: .destructive) { confirmingBlock = true }
+                }
+            } label: {
+                Label("More", systemImage: "ellipsis.circle")
+            }
+        }
+        .sheet(item: $reporting) { ReportView(target: $0) }
+        .confirmationDialog("Block \(otherName)?", isPresented: $confirmingBlock, titleVisibility: .visible) {
+            Button("Block", role: .destructive) { Task { await block() } }
+        } message: {
+            Text("You won't see each other's listings or be able to message each other, and any pickup in progress between you ends.")
+        }
         .task { await load() }
         // Realtime pauses in the background, so catch up on return.
         .onChange(of: scenePhase) {
@@ -106,6 +144,24 @@ struct ChatView: View {
         .background(.bar)
     }
 
+    private var blockedNotice: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+            HStack {
+                Text("You blocked \(otherName).")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("Unblock") { Task { await unblock() } }
+            }
+        }
+        .padding()
+        .background(.bar)
+    }
+
     /// Shows a time above the first message, and above any message sent after a long pause.
     private func startsNewGroup(at index: Int) -> Bool {
         guard index > 0 else { return true }
@@ -122,6 +178,23 @@ struct ChatView: View {
             errorMessage = "Couldn't load messages: \(error.localizedDescription)"
         }
         hasLoaded = true
+    }
+
+    private func block() async {
+        do {
+            try await safety.block(otherUserID)
+        } catch {
+            errorMessage = "Couldn't block: \(error.localizedDescription)"
+        }
+    }
+
+    private func unblock() async {
+        do {
+            try await safety.unblock(otherUserID)
+            errorMessage = nil
+        } catch {
+            errorMessage = "Couldn't unblock: \(error.localizedDescription)"
+        }
     }
 
     private func send() async {
@@ -150,7 +223,6 @@ private struct MessageBubble: View {
                 .padding(.vertical, 8)
                 .foregroundStyle(isMine ? Color.white : Color.primary)
                 .background(isMine ? Color.accentColor : Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 18))
-                .textSelection(.enabled)
             if !isMine { Spacer(minLength: 48) }
         }
         .accessibilityElement(children: .combine)
@@ -162,11 +234,12 @@ private struct MessageBubble: View {
     let conversationID = UUID()
     let me = UUID()
     return NavigationStack {
-        ChatView(conversationID: conversationID, otherName: "Sam")
+        ChatView(conversationID: conversationID, otherUserID: UUID(), otherName: "Sam")
     }
     .environment(ChatService.preview([
         Message(id: UUID(), conversationID: conversationID, senderID: UUID(), body: "Could I pick it up Saturday?", createdAt: .now.addingTimeInterval(-7200)),
         Message(id: UUID(), conversationID: conversationID, senderID: me, body: "Saturday at 10 works.", createdAt: .now.addingTimeInterval(-7000)),
     ]))
     .environment(AuthService())
+    .environment(SafetyService())
 }

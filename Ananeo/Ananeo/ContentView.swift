@@ -7,6 +7,7 @@ enum AppTab: Hashable {
 struct ContentView: View {
     @Environment(PickupService.self) private var pickups
     @Environment(ChatService.self) private var chat
+    @Environment(SafetyService.self) private var safety
     @Environment(\.scenePhase) private var scenePhase
     @State private var selection: AppTab = .browse
 
@@ -32,8 +33,9 @@ struct ContentView: View {
         }
         // One Realtime connection for the signed-in session. It ends when this view goes away at sign-out.
         .task { await chat.listen() }
-        // Keep the tab badge right: at launch, when messages or handoffs change, and on return to the app.
-        .task(id: chat.revision) { try? await pickups.refresh() }
+        .task { try? await safety.refresh() }
+        // Keep the tab badge right: at launch, when messages, handoffs, or blocks change, and on return to the app.
+        .task(id: [chat.revision, safety.revision]) { try? await pickups.refresh() }
         .onChange(of: scenePhase) {
             if scenePhase == .active { Task { try? await pickups.refresh() } }
         }
@@ -46,6 +48,7 @@ struct ContentView: View {
         .environment(ListingService())
         .environment(PickupService.preview([.preview]))
         .environment(ChatService.preview([]))
+        .environment(SafetyService())
         .environment(LocationService())
         .environment(AuthService())
 }

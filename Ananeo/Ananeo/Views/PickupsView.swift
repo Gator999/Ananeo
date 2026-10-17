@@ -132,4 +132,5 @@ struct UnreadBadge: View {
         .environment(ListingService())
         .environment(ChatService.preview([]))
         .environment(AuthService())
+        .environment(SafetyService())
 }
