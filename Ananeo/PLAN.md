@@ -215,10 +215,12 @@ Week counts assume one developer part-time. Each phase ends with a TestFlight bu
 
 ### Phase 2 — Handoffs (weeks 4–6)
 
-- In-app chat per item, with push notifications.
+- [x] In-app chat per item, live over Realtime, with unread counts on the Pickups tab.
+- Push notifications for new messages and reservations.
 - [x] Request an item, reserve it for one requester, then both sides confirm the handoff. A Pickups tab tracks each item from request to handoff.
 - Impact tab driven by real handoffs.
-- Report, block, and a basic moderation view.
+- [x] Report listings, messages, and people. Block people, which also ends any pickup in progress between you. A moderation queue for moderators, with remove and ban.
+- [x] Terms of use, accepted after sign-in and before anything else, with zero tolerance for objectionable content, an 18+ minimum age, and a prohibited-items list linked from the Give form.
 - Account deletion.
 - **Exit test:** a full give-and-pickup loop completes, and impact updates for both users.
 

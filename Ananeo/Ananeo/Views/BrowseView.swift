@@ -52,6 +52,7 @@ struct BrowseView: View {
 
 private struct NearbyFeed: View {
     @Environment(ListingService.self) private var listings
+    @Environment(SafetyService.self) private var safety
     let coordinate: CLLocationCoordinate2D
 
     @State private var category: ItemCategory?
@@ -66,6 +67,7 @@ private struct NearbyFeed: View {
         let category: ItemCategory?
         let radiusMiles: Double
         let revision: Int
+        let blocks: Int
     }
 
     var body: some View {
@@ -114,7 +116,7 @@ private struct NearbyFeed: View {
             if isLoading && results.isEmpty { ProgressView() }
         }
         .refreshable { await load() }
-        .task(id: Query(coordinate: coordinate, category: category, radiusMiles: appliedRadius, revision: listings.revision)) {
+        .task(id: Query(coordinate: coordinate, category: category, radiusMiles: appliedRadius, revision: listings.revision, blocks: safety.revision)) {
             await load()
         }
     }
@@ -194,4 +196,5 @@ struct ListingPhoto: View {
     BrowseView()
         .environment(ListingService())
         .environment(LocationService())
+        .environment(SafetyService())
 }

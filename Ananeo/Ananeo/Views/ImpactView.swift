@@ -5,11 +5,15 @@ struct ImpactView: View {
     @Environment(ListingService.self) private var listings
     @Environment(PickupService.self) private var pickups
     @Environment(AuthService.self) private var auth
+    @Environment(SafetyService.self) private var safety
 
     @State private var mine = Impact()
     @State private var community = CommunityImpact()
     @State private var errorMessage: String?
     @State private var confirmingDelete = false
+    @State private var showingBlocked = false
+    @State private var showingModeration = false
+    @State private var showingTerms = false
 
     var body: some View {
         NavigationStack {
@@ -49,6 +53,12 @@ struct ImpactView: View {
             .task(id: [listings.revision, pickups.revision]) { await load() }
             .toolbar {
                 Menu {
+                    Button("Blocked People", systemImage: "hand.raised") { showingBlocked = true }
+                    if safety.isModerator {
+                        Button("Moderation", systemImage: "checkmark.shield") { showingModeration = true }
+                    }
+                    Button("Terms of Use", systemImage: "doc.text") { showingTerms = true }
+                    Divider()
                     Button("Sign Out") {
                         Task { await auth.signOut() }
                     }
@@ -59,6 +69,9 @@ struct ImpactView: View {
                     Label("Account", systemImage: "person.crop.circle")
                 }
             }
+            .sheet(isPresented: $showingBlocked) { BlockedPeopleView() }
+            .sheet(isPresented: $showingModeration) { ModerationView() }
+            .sheet(isPresented: $showingTerms) { TermsSheet() }
             .confirmationDialog("Delete your account?", isPresented: $confirmingDelete, titleVisibility: .visible) {
                 Button("Delete Account", role: .destructive) {
                     Task { await auth.deleteAccount() }
@@ -100,4 +113,5 @@ private struct ImpactStat: View {
         .environment(ListingService())
         .environment(PickupService())
         .environment(AuthService())
+        .environment(SafetyService())
 }

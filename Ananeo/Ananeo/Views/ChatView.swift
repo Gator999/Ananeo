@@ -3,6 +3,7 @@ import SwiftUI
 /// Chat between the giver and one requester, about one item. New messages arrive live.
 struct ChatView: View {
     @Environment(ChatService.self) private var chat
+    @Environment(SafetyService.self) private var safety
 
     let request: PickupRequest
     let itemTitle: String
@@ -12,6 +13,10 @@ struct ChatView: View {
     @State private var draft = ""
     @State private var isSending = false
     @State private var errorMessage: String?
+    @State private var reporting: ReportTarget?
+    @State private var confirmingBlock = false
+
+    private var isBlocked: Bool { safety.isBlocked(request.otherUserID) }
 
     private var trimmedDraft: String { draft.trimmingCharacters(in: .whitespacesAndNewlines) }
 
@@ -20,6 +25,16 @@ struct ChatView: View {
             LazyVStack(spacing: 8) {
                 ForEach(messages) { message in
                     MessageBubble(message: message, isMine: message.senderID != request.otherUserID)
+                        .contextMenu {
+                            Button("Copy", systemImage: "doc.on.doc") {
+                                UIPasteboard.general.string = message.body
+                            }
+                            if message.senderID == request.otherUserID {
+                                Button("Report Message", systemImage: "flag") {
+                                    reporting = ReportTarget(kind: .message, id: message.id, userID: request.otherUserID, name: request.otherName)
+                                }
+                            }
+                        }
                 }
             }
             .padding()
@@ -37,7 +52,13 @@ struct ChatView: View {
                 )
             }
         }
-        .safeAreaInset(edge: .bottom) { composer }
+        .safeAreaInset(edge: .bottom) {
+            if isBlocked {
+                blockedNotice
+            } else {
+                composer
+            }
+        }
         .navigationTitle(request.otherName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -47,6 +68,24 @@ struct ChatView: View {
                     Text(itemTitle).font(.caption).foregroundStyle(.secondary)
                 }
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("Report \(request.otherName)", systemImage: "flag") {
+                        reporting = ReportTarget(kind: .user, id: request.otherUserID, userID: request.otherUserID, name: request.otherName)
+                    }
+                    if !isBlocked {
+                        Button("Block \(request.otherName)", systemImage: "hand.raised", role: .destructive) { confirmingBlock = true }
+                    }
+                } label: {
+                    Label("More", systemImage: "ellipsis.circle")
+                }
+            }
+        }
+        .sheet(item: $reporting) { ReportView(target: $0) }
+        .confirmationDialog("Block \(request.otherName)?", isPresented: $confirmingBlock, titleVisibility: .visible) {
+            Button("Block", role: .destructive) { Task { await block() } }
+        } message: {
+            Text("You won't see each other's listings or be able to message each other, and any pickup in progress between you ends.")
         }
         .task { await load() }
     }
@@ -73,6 +112,22 @@ struct ChatView: View {
         .background(.bar)
     }
 
+    private var blockedNotice: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if let errorMessage {
+                Text(errorMessage).font(.caption).foregroundStyle(.red)
+            }
+            HStack {
+                Text("You blocked \(request.otherName).")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("Unblock") { Task { await unblock() } }
+            }
+        }
+        .padding()
+        .background(.bar)
+    }
+
     /// Loads the history, then appends new messages until the screen goes away.
     private func load() async {
         do {
@@ -91,6 +146,23 @@ struct ChatView: View {
             if message.senderID == request.otherUserID {
                 Task { await chat.markRead(request.id) }
             }
+        }
+    }
+
+    private func block() async {
+        do {
+            try await safety.block(request.otherUserID)
+        } catch {
+            errorMessage = "Couldn't block: \(error.localizedDescription)"
+        }
+    }
+
+    private func unblock() async {
+        do {
+            try await safety.unblock(request.otherUserID)
+            errorMessage = nil
+        } catch {
+            errorMessage = "Couldn't unblock: \(error.localizedDescription)"
         }
     }
 
@@ -145,4 +217,5 @@ private struct MessageBubble: View {
         ChatView(request: request, itemTitle: Pickup.preview.title)
     }
     .environment(ChatService.preview())
+    .environment(SafetyService())
 }
