@@ -85,7 +85,7 @@ struct ContentView: View {
         switch tab {
         case .browse: BrowseView()
         case .pickups: PickupsView()
-        case .places: DonationCentersView()
+        case .places: PlacesView()
         case .impact: ImpactView()
         }
     }
@@ -115,7 +115,7 @@ private struct PostedToast: View {
 
 #Preview {
     ContentView()
-        .environment(PlacesStore())
+        .environment(PlaceService())
         .environment(ListingService())
         .environment(PickupService.preview([.preview]))
         .environment(ChatService.preview())

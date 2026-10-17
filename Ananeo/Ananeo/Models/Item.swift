@@ -70,11 +70,3 @@ enum ItemStatus: String, Codable {
     case handedOff = "handed_off"
     case removed
 }
-
-struct DonationCenter: Identifiable, Hashable {
-    let id = UUID()
-    let name: String
-    let address: String
-    let accepts: [ItemCategory]
-    let distanceMiles: Double
-}

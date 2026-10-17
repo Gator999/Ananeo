@@ -1,64 +1,50 @@
 import SwiftUI
 
-/// Personal and community totals, counted only from handoffs both sides confirmed.
+/// Personal and community totals, counted only from handoffs both sides confirmed. Counters roll on every open.
 struct ImpactView: View {
     @Environment(ListingService.self) private var listings
     @Environment(PickupService.self) private var pickups
     @Environment(AuthService.self) private var auth
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var mine = Impact()
-    @State private var community = CommunityImpact()
+    @State private var community: CommunityImpact?
     @State private var errorMessage: String?
     @State private var confirmingDelete = false
+    @State private var shareImage: Image?
+
+    private var handoffs: Int { mine.itemsGiven + mine.itemsReceived }
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    HStack {
-                        ImpactStat(value: "\(mine.itemsGiven)", label: "Items given")
-                        Divider()
-                        ImpactStat(value: "\(mine.itemsReceived)", label: "Items received")
-                        Divider()
-                        ImpactStat(value: String(format: "%.1f kg", mine.kgDiverted), label: "Kept from landfill")
+            ScrollView {
+                VStack(alignment: .leading, spacing: AnaneoTheme.Spacing.xl) {
+                    header
+                    hero
+                    tiles
+                    if let community {
+                        CommunityCard(community: community)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical)
-                } header: {
-                    Text("You")
-                } footer: {
+                    shareRow
                     if let errorMessage {
-                        Text(errorMessage).foregroundStyle(.red)
-                    } else if mine.itemsGiven + mine.itemsReceived == 0 {
+                        Text(errorMessage)
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.red)
+                    } else if handoffs == 0 {
                         Text("Your totals grow each time a handoff is confirmed by both people.")
+                            .font(.footnote)
+                            .foregroundStyle(AnaneoTheme.smoke)
+                            .frame(maxWidth: .infinity)
+                            .multilineTextAlignment(.center)
                     }
                 }
-
-                Section("Everyone on Ananeo") {
-                    HStack {
-                        ImpactStat(value: "\(community.itemsKeptMoving)", label: "Items kept moving")
-                        Divider()
-                        ImpactStat(value: String(format: "%.0f kg", community.kgDiverted), label: "Kept from landfill")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical)
-                }
+                .padding(.horizontal, AnaneoTheme.Spacing.xl)
+                .padding(.bottom, AnaneoTheme.Spacing.xxl)
             }
-            .navigationTitle("Your Impact")
+            .background(backdrop)
+            .toolbar(.hidden, for: .navigationBar)
             .refreshable { await load() }
             .task(id: [listings.revision, pickups.revision]) { await load() }
-            .toolbar {
-                Menu {
-                    Button("Sign Out") {
-                        Task { await auth.signOut() }
-                    }
-                    Button("Delete Account", role: .destructive) {
-                        confirmingDelete = true
-                    }
-                } label: {
-                    Label("Account", systemImage: "person.crop.circle")
-                }
-            }
             .confirmationDialog("Delete your account?", isPresented: $confirmingDelete, titleVisibility: .visible) {
                 Button("Delete Account", role: .destructive) {
                     Task { await auth.deleteAccount() }
@@ -69,29 +55,114 @@ struct ImpactView: View {
         }
     }
 
+    /// A soft Leaf glow behind the ring.
+    private var backdrop: some View {
+        ZStack {
+            AnaneoTheme.canvas
+            RadialGradient(colors: [AnaneoTheme.leaf.opacity(0.22), .clear], center: UnitPoint(x: 0.5, y: 0.22), startRadius: 0, endRadius: 320)
+        }
+        .ignoresSafeArea()
+    }
+
+    private var header: some View {
+        HStack(alignment: .bottom) {
+            VStack(alignment: .leading, spacing: AnaneoTheme.Spacing.xs + 2) {
+                Text("Confirmed by both people").sectionLabel()
+                Text("Your impact")
+                    .displayTitle()
+                    .foregroundStyle(AnaneoTheme.ink)
+            }
+            .accessibilityAddTraits(.isHeader)
+            Spacer()
+            Menu {
+                Button("Sign Out") {
+                    Task { await auth.signOut() }
+                }
+                Button("Delete Account", role: .destructive) {
+                    confirmingDelete = true
+                }
+            } label: {
+                Image(systemName: "person.crop.circle")
+                    .font(.title3)
+                    .foregroundStyle(AnaneoTheme.ink)
+                    .frame(width: 42, height: 42)
+                    .glass()
+            }
+            .accessibilityLabel("Account")
+        }
+        .padding(.top, AnaneoTheme.Spacing.sm)
+    }
+
+    private var hero: some View {
+        VStack(spacing: AnaneoTheme.Spacing.lg) {
+            ImpactRing(kilograms: mine.kgDiverted)
+                .frame(width: 236)
+            HStack(spacing: AnaneoTheme.Spacing.sm) {
+                LoopMark().frame(width: 16, height: 16)
+                (Text(handoffs, format: .number).font(AnaneoTheme.Typography.numerals(.subheadline))
+                    + Text(handoffs == 1 ? " handoff confirmed" : " handoffs confirmed"))
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(AnaneoTheme.ink)
+                    .contentTransition(.numericText())
+            }
+            .padding(.horizontal, AnaneoTheme.Spacing.lg - 2)
+            .frame(height: 32)
+            .glass()
+            .accessibilityElement(children: .combine)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, AnaneoTheme.Spacing.sm)
+    }
+
+    private var tiles: some View {
+        HStack(spacing: AnaneoTheme.Spacing.md) {
+            StatTile(count: mine.itemsGiven, label: "Items given")
+            StatTile(count: mine.itemsReceived, label: "Items received")
+        }
+    }
+
+    private var shareRow: some View {
+        HStack(spacing: AnaneoTheme.Spacing.md + 2) {
+            ShareCard(impact: mine)
+                .scaleEffect(54 / ShareCard.size.width, anchor: .topLeading)
+                .frame(width: 54, height: 54 * ShareCard.size.height / ShareCard.size.width)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .shadow(color: AnaneoTheme.leaf.opacity(0.3), radius: 9, y: 8)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Share your impact")
+                    .font(.headline)
+                    .foregroundStyle(AnaneoTheme.ink)
+                Text("A story-sized card with your totals and the loop.")
+                    .font(.caption)
+                    .foregroundStyle(AnaneoTheme.smoke)
+            }
+            Spacer(minLength: 0)
+            if let shareImage {
+                ShareLink(item: shareImage, preview: SharePreview("Your impact on Ananeo", image: shareImage)) {
+                    Text("Share")
+                }
+                .buttonStyle(.pill(.secondary, expanded: false))
+            }
+        }
+        .card(padding: AnaneoTheme.Spacing.md + 2)
+    }
+
     private func load() async {
         do {
             async let mineResult = listings.myImpact()
             async let communityResult = listings.communityImpact()
-            (mine, community) = try await (mineResult, communityResult)
+            let (newMine, newCommunity) = try await (mineResult, communityResult)
+            withAnimation(AnaneoMotion.roll(reduceMotion: reduceMotion)) {
+                mine = newMine
+                community = newCommunity
+            }
             errorMessage = nil
+            shareImage = ShareCard.render(newMine)
         } catch is CancellationError {
         } catch {
             errorMessage = "Couldn't load totals: \(error.localizedDescription)"
         }
-    }
-}
-
-private struct ImpactStat: View {
-    let value: String
-    let label: String
-
-    var body: some View {
-        VStack {
-            Text(value).font(.title.bold()).minimumScaleFactor(0.6).lineLimit(1)
-            Text(label).font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
     }
 }
 

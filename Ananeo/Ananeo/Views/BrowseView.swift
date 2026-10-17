@@ -217,7 +217,7 @@ private struct NearbyFeed: View {
     }
 }
 
-/// Everyone's totals on the Renewal gradient. Hidden until they load, so the feed never waits on it.
+/// Everyone's totals, hidden until they load so the feed never waits on them.
 private struct CommunityStrip: View {
     @Environment(ListingService.self) private var listings
     @State private var community: CommunityImpact?
@@ -225,35 +225,12 @@ private struct CommunityStrip: View {
     var body: some View {
         Group {
             if let community {
-                HStack(spacing: AnaneoTheme.Spacing.md + 2) {
-                    LoopMark.onGradient
-                        .frame(width: 40, height: 40)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Everyone on Ananeo")
-                            .sectionLabel(.white.opacity(0.85))
-                        totals(community)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.white)
-                    }
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, AnaneoTheme.Spacing.lg)
-                .padding(.vertical, AnaneoTheme.Spacing.md + 2)
-                .background(AnaneoTheme.renewal, in: RoundedRectangle(cornerRadius: AnaneoTheme.Radius.card, style: .continuous))
-                .shadow(color: AnaneoTheme.forest.opacity(0.28), radius: 14, y: 10)
-                .accessibilityElement(children: .combine)
+                CommunityCard(community: community)
             }
         }
         .task(id: listings.revision) {
             community = try? await listings.communityImpact()
         }
-    }
-
-    private func totals(_ community: CommunityImpact) -> Text {
-        Text(community.itemsKeptMoving, format: .number).font(AnaneoTheme.Typography.numerals(.title3))
-            + Text(" items kept moving · ")
-            + Text(community.kgDiverted, format: .number.precision(.fractionLength(0))).font(AnaneoTheme.Typography.numerals(.title3))
-            + Text(" kg")
     }
 }
 
