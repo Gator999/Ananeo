@@ -7,6 +7,9 @@ set search_path = public, extensions;
 
 select plan(8);
 
+-- seed.sql adds sample places on `supabase start`; this test wants only its own rows. Rolled back with the rest.
+delete from public.places;
+
 insert into auth.users (id, email, aud, role, raw_user_meta_data) values
     ('00000000-0000-0000-0000-00000000000a', 'alice@test.local', 'authenticated', 'authenticated', '{"full_name":"Alice"}'),
     ('00000000-0000-0000-0000-00000000000b', 'bob@test.local',   'authenticated', 'authenticated', '{"full_name":"Bob"}');

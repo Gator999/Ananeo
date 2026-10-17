@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct AnaneoApp: App {
-    @State private var places = PlacesStore()
+    @State private var places = PlaceService()
     @State private var listings = ListingService()
     @State private var pickups = PickupService()
     @State private var chat = ChatService()

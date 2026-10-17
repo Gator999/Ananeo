@@ -15,53 +15,62 @@ struct PickupDetailView: View {
     @State private var confirmingHandoff = false
     @State private var confirmingCancel = false
     @State private var confirmingWithdraw = false
+    @State private var isCelebrating = false
 
     var body: some View {
-        if let pickup = pickups.pickup(for: itemID) {
-            content(pickup)
-        } else {
-            ContentUnavailableView(
-                "No Longer in Pickups",
-                systemImage: "tray",
-                description: Text("The request was withdrawn, or one of you blocked the other.")
-            )
+        Group {
+            if let pickup = pickups.pickup(for: itemID) {
+                content(pickup)
+            } else {
+                ContentUnavailableView(
+                    "No Longer in Pickups",
+                    systemImage: "tray",
+                    description: Text("The request was withdrawn, or one of you blocked the other.")
+                )
+            }
         }
+        .background(AnaneoTheme.canvas)
+        .hidesFloatingTabBar()
     }
 
     private func content(_ pickup: Pickup) -> some View {
-        let name = pickup.reservation?.otherName ?? pickup.requests.first?.otherName ?? "them"
+        let name = pickup.counterpart?.otherName ?? "them"
+        let accent = pickup.isGiver ? AnaneoTheme.progress : AnaneoTheme.sky
 
-        return List {
-            Section {
-                HStack(spacing: 12) {
-                    ListingPhoto(url: pickup.photo.flatMap(listings.photoURL), placeholder: pickup.category.systemImage)
-                        .frame(width: 72, height: 72)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(pickup.title).font(.headline)
-                        Text(pickup.category.title).font(.subheadline).foregroundStyle(.secondary)
-                    }
+        return ScrollView {
+            VStack(alignment: .leading, spacing: AnaneoTheme.Spacing.xl) {
+                itemCard(pickup, accent: accent)
+
+                if pickup.isGiver {
+                    givingSections(pickup)
+                } else {
+                    gettingSections(pickup)
+                }
+
+                messagesSection(pickup)
+
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.red)
                 }
             }
-
-            if pickup.isGiver {
-                givingSections(pickup)
-            } else {
-                gettingSections(pickup)
-            }
-
-            messagesSection(pickup)
-
-            if let errorMessage {
-                Section {
-                    Text(errorMessage).foregroundStyle(.red)
-                }
+            .padding(.horizontal, AnaneoTheme.Spacing.xl)
+            .padding(.vertical, AnaneoTheme.Spacing.lg)
+        }
+        .overlay {
+            if isCelebrating {
+                Celebration()
             }
         }
         .navigationTitle(pickup.title)
         .navigationBarTitleDisplayMode(.inline)
         .disabled(isWorking)
         .refreshable { try? await pickups.refresh() }
+        .sensoryFeedback(trigger: isCelebrating) { _, playing in playing ? .success : nil }
+        .onChange(of: pickup.stage == .done) { wasDone, isDone in
+            if isDone && !wasDone { celebrate() }
+        }
         .confirmationDialog(
             "Reserve for \(choosing?.otherName ?? "them")?",
             isPresented: Binding(get: { choosing != nil }, set: { if !$0 { choosing = nil } }),
@@ -106,45 +115,65 @@ struct PickupDetailView: View {
         }
     }
 
+    // MARK: - Item
+
+    private func itemCard(_ pickup: Pickup, accent: Color) -> some View {
+        VStack(alignment: .leading, spacing: AnaneoTheme.Spacing.lg) {
+            HStack(spacing: AnaneoTheme.Spacing.md) {
+                ListingPhoto(urls: pickup.photo.map(listings.gridURLs) ?? [], placeholder: pickup.category.systemImage)
+                    .frame(width: 72, height: 72)
+                    .clipShape(RoundedRectangle(cornerRadius: AnaneoTheme.Radius.thumbnail, style: .continuous))
+                VStack(alignment: .leading, spacing: AnaneoTheme.Spacing.xs) {
+                    Text(pickup.title)
+                        .font(.headline)
+                        .foregroundStyle(AnaneoTheme.ink)
+                    Text(pickup.statusLine)
+                        .font(.footnote.weight(pickup.needsYou ? .semibold : .regular))
+                        .foregroundStyle(pickup.needsYou ? accent : AnaneoTheme.smoke)
+                }
+                Spacer(minLength: 0)
+            }
+            if let step = pickup.trackerStep {
+                StageTracker(current: step, accent: accent)
+            }
+        }
+        .card()
+    }
+
     // MARK: - Giving
 
     @ViewBuilder
     private func givingSections(_ pickup: Pickup) -> some View {
         switch pickup.stage {
         case .open:
-            Section {
+            section("Who asked", footer: "Choose one person. You can cancel and choose someone else if plans fall through.") {
                 ForEach(pickup.requests) { request in
-                    HStack {
-                        RequesterLabel(request: request)
-                        Spacer()
+                    requesterRow(request, isGetting: false) {
                         Button("Reserve") { choosing = request }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(.pill(.secondary, expanded: false))
                     }
                 }
-            } header: {
-                Text("Who Asked")
-            } footer: {
-                Text("Choose one person. You can cancel and choose someone else if plans fall through.")
             }
 
         case .reserved:
             if let reservation = pickup.reservation, let handoff = reservation.handoff {
-                Section {
-                    ConfirmationStatus(handoff: handoff, otherName: reservation.otherName)
-                    if !handoff.confirmedByMe {
-                        Button("Confirm Handoff", systemImage: "checkmark.circle") { confirmingHandoff = true }
+                section("Reserved for \(reservation.otherName)", footer: "Confirm once \(reservation.otherName) has it. When you've both confirmed, it counts toward your impact.") {
+                    VStack(spacing: AnaneoTheme.Spacing.md) {
+                        ConfirmationStatus(handoff: handoff, otherName: reservation.otherName)
+                        if !handoff.confirmedByMe {
+                            Button("Confirm Handoff", systemImage: "checkmark.circle") { confirmingHandoff = true }
+                                .buttonStyle(.pill)
+                        }
+                        Button("Cancel Reservation", role: .destructive) { confirmingCancel = true }
+                            .buttonStyle(.pill(.secondary))
                     }
-                    Button("Cancel Reservation", role: .destructive) { confirmingCancel = true }
-                } header: {
-                    Text("Reserved for \(reservation.otherName)")
-                } footer: {
-                    Text("Confirm once \(reservation.otherName) has it. When you've both confirmed, it counts toward your impact.")
+                    .card()
                 }
 
                 let others = pickup.requests.filter { $0.id != reservation.id }
                 if !others.isEmpty {
-                    Section("Also Asked") {
-                        ForEach(others) { RequesterLabel(request: $0) }
+                    section("Also asked") {
+                        ForEach(others) { requesterRow($0, isGetting: false) { EmptyView() } }
                     }
                 }
             }
@@ -155,9 +184,9 @@ struct PickupDetailView: View {
             }
 
         case .unavailable:
-            Section {
-                Text("This item isn't available.")
-            }
+            Text("This item isn't available.")
+                .foregroundStyle(AnaneoTheme.smoke)
+                .card()
         }
     }
 
@@ -169,26 +198,24 @@ struct PickupDetailView: View {
 
         switch pickup.stage {
         case .open:
-            Section {
+            section("Requested", footer: "\(giver) chooses who gets it from everyone who asks.") {
                 Button("Withdraw Request", role: .destructive) { confirmingWithdraw = true }
-            } header: {
-                Text("Requested")
-            } footer: {
-                Text("\(giver) chooses who gets it from everyone who asks.")
+                    .buttonStyle(.pill(.secondary))
             }
 
         case .reserved:
             if let handoff = pickup.reservation?.handoff {
-                Section {
-                    ConfirmationStatus(handoff: handoff, otherName: giver)
-                    if !handoff.confirmedByMe {
-                        Button("Confirm Pickup", systemImage: "checkmark.circle") { confirmingHandoff = true }
+                section("Reserved for you", footer: "Confirm once you have it. When you've both confirmed, it counts toward your impact.") {
+                    VStack(spacing: AnaneoTheme.Spacing.md) {
+                        ConfirmationStatus(handoff: handoff, otherName: giver)
+                        if !handoff.confirmedByMe {
+                            Button("Confirm Pickup", systemImage: "checkmark.circle") { confirmingHandoff = true }
+                                .buttonStyle(.pill)
+                        }
+                        Button("Back Out", role: .destructive) { confirmingWithdraw = true }
+                            .buttonStyle(.pill(.secondary))
                     }
-                    Button("Back Out", role: .destructive) { confirmingWithdraw = true }
-                } header: {
-                    Text("Reserved for You")
-                } footer: {
-                    Text("Confirm once you have it. When you've both confirmed, it counts toward your impact.")
+                    .card()
                 }
             }
 
@@ -198,10 +225,9 @@ struct PickupDetailView: View {
             }
 
         case .unavailable:
-            Section {
+            section(nil, footer: "\(giver) gave it to someone else or took it down.") {
                 Button("Remove from Pickups") { Task { await withdraw(pickup) } }
-            } footer: {
-                Text("\(giver) gave it to someone else or took it down.")
+                    .buttonStyle(.pill(.secondary))
             }
         }
     }
@@ -214,28 +240,68 @@ struct PickupDetailView: View {
         let reservation = pickup.reservation
         let requests = reservation.map { held in [held] + pickup.requests.filter { $0.id != held.id } } ?? pickup.requests
         if !requests.isEmpty {
-            Section("Messages") {
+            section("Messages") {
                 ForEach(requests) { request in
                     NavigationLink {
-                        ChatView(request: request, itemTitle: pickup.title)
+                        ChatView(pickup: pickup, request: request)
                     } label: {
-                        ChatLink(request: request, summary: chat.summary(for: request))
+                        ChatLink(request: request, isGetting: !pickup.isGiver, summary: chat.summary(for: request))
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }
     }
 
     private func completedSection(_ pickup: Pickup, with reservation: PickupRequest) -> some View {
-        Section {
-            if let completedAt = reservation.handoff?.completedAt {
-                LabeledContent(pickup.isGiver ? "Given to \(reservation.otherName)" : "Received from \(reservation.otherName)") {
-                    Text(completedAt, format: .dateTime.month().day())
+        section(nil, footer: "Thanks for keeping it moving.") {
+            HStack(spacing: AnaneoTheme.Spacing.md) {
+                LoopMark().frame(width: 44, height: 44)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(pickup.isGiver ? "Given to \(reservation.otherName)" : "Received from \(reservation.otherName)")
+                        .font(.headline)
+                        .foregroundStyle(AnaneoTheme.ink)
+                    if let completedAt = reservation.handoff?.completedAt {
+                        Text(completedAt, format: .dateTime.month().day())
+                            .font(.footnote)
+                            .foregroundStyle(AnaneoTheme.smoke)
+                    }
                 }
+                Spacer(minLength: 0)
             }
-        } footer: {
-            Text("Thanks for keeping it moving.")
+            .card()
         }
+    }
+
+    private func section<Content: View>(_ title: String?, footer: String? = nil, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: AnaneoTheme.Spacing.sm + 2) {
+            if let title {
+                Text(title).sectionLabel()
+            }
+            content()
+            if let footer {
+                Text(footer)
+                    .font(.footnote)
+                    .foregroundStyle(AnaneoTheme.smoke)
+            }
+        }
+    }
+
+    private func requesterRow<Trailing: View>(_ request: PickupRequest, isGetting: Bool, @ViewBuilder trailing: () -> Trailing) -> some View {
+        HStack(spacing: AnaneoTheme.Spacing.md) {
+            PersonBadge(name: request.otherName, isGetting: isGetting, size: 40)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(request.otherName)
+                    .font(.headline)
+                    .foregroundStyle(AnaneoTheme.ink)
+                Text("Asked \(request.requestedAt.formatted(.relative(presentation: .named)))")
+                    .font(.footnote)
+                    .foregroundStyle(AnaneoTheme.smoke)
+            }
+            Spacer(minLength: 0)
+            trailing()
+        }
+        .card(padding: AnaneoTheme.Spacing.md)
     }
 
     private func perform(_ action: () async throws -> Void) async {
@@ -254,17 +320,12 @@ struct PickupDetailView: View {
         await perform { try await pickups.withdraw(pickup) }
         if errorMessage == nil { dismiss() }
     }
-}
 
-private struct RequesterLabel: View {
-    let request: PickupRequest
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(request.otherName)
-            Text("Asked \(request.requestedAt.formatted(.relative(presentation: .named)))")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+    private func celebrate() {
+        isCelebrating = true
+        Task {
+            try? await Task.sleep(for: .seconds(2.2))
+            isCelebrating = false
         }
     }
 }
@@ -272,27 +333,37 @@ private struct RequesterLabel: View {
 /// A request's chat, with its latest message and unread count.
 private struct ChatLink: View {
     let request: PickupRequest
+    let isGetting: Bool
     let summary: ChatSummary?
 
     var body: some View {
-        HStack {
+        HStack(spacing: AnaneoTheme.Spacing.md) {
+            PersonBadge(name: request.otherName, isGetting: isGetting, size: 40)
             VStack(alignment: .leading, spacing: 2) {
                 Text(request.otherName)
+                    .font(.headline)
+                    .foregroundStyle(AnaneoTheme.ink)
                 Text(preview)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.footnote)
+                    .foregroundStyle(AnaneoTheme.smoke)
                     .lineLimit(1)
             }
-            Spacer()
+            Spacer(minLength: 0)
             if let unread = summary?.unreadCount, unread > 0 {
-                Text("\(unread)")
-                    .font(.caption.bold())
+                Text(unread, format: .number)
+                    .numerals(.caption2)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 7)
-                    .padding(.vertical, 2)
-                    .background(Color.accentColor, in: Capsule())
+                    .frame(minWidth: 22)
+                    .frame(height: 22)
+                    .background(AnaneoTheme.clay, in: Capsule())
+                    .accessibilityLabel("\(unread) unread messages")
             }
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(AnaneoTheme.smoke)
         }
+        .card(padding: AnaneoTheme.Spacing.md)
     }
 
     private var preview: String {
@@ -307,16 +378,20 @@ private struct ConfirmationStatus: View {
     let otherName: String
 
     var body: some View {
-        Group {
+        VStack(spacing: AnaneoTheme.Spacing.sm) {
             row("You", confirmed: handoff.confirmedByMe)
             row(otherName, confirmed: handoff.confirmedByThem)
         }
     }
 
     private func row(_ who: String, confirmed: Bool) -> some View {
-        LabeledContent(who) {
+        HStack {
+            Text(who)
+                .foregroundStyle(AnaneoTheme.ink)
+            Spacer()
             Label(confirmed ? "Confirmed" : "Not yet", systemImage: confirmed ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(confirmed ? Color.accentColor : Color.secondary)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(confirmed ? AnaneoTheme.progress : AnaneoTheme.smoke)
         }
     }
 }
