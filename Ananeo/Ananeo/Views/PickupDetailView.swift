@@ -20,7 +20,11 @@ struct PickupDetailView: View {
         if let pickup = pickups.pickup(for: itemID) {
             content(pickup)
         } else {
-            ContentUnavailableView("No Longer in Pickups", systemImage: "tray")
+            ContentUnavailableView(
+                "No Longer in Pickups",
+                systemImage: "tray",
+                description: Text("The request was withdrawn, or one of you blocked the other.")
+            )
         }
     }
 

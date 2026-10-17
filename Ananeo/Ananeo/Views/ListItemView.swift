@@ -12,9 +12,10 @@ struct ListItemView: View {
 
     @State private var draft = ListingDraft()
     @State private var pickerItems: [PhotosPickerItem] = []
-    @State private var photos: [Data] = []
+    @State private var photos: [PickedPhoto] = []
     @State private var isLoadingPhotos = false
     @State private var isPosting = false
+    @State private var showingProhibited = false
     @State private var errorMessage: String?
 
     private var coordinate: CLLocationCoordinate2D? {
@@ -57,6 +58,10 @@ struct ListItemView: View {
                 pickupSection
 
                 Section {
+                    Button("What Can't Be Listed", systemImage: "nosign") { showingProhibited = true }
+                }
+
+                Section {
                     Button {
                         Task { await post() }
                     } label: {
@@ -76,6 +81,7 @@ struct ListItemView: View {
                 }
             }
             .navigationTitle("Give")
+            .sheet(isPresented: $showingProhibited) { ProhibitedItemsSheet() }
             .onChange(of: pickerItems) { _, items in
                 Task { await loadPhotos(items) }
             }
@@ -89,10 +95,8 @@ struct ListItemView: View {
             if !photos.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(Array(photos.enumerated()), id: \.offset) { index, data in
-                            PhotoThumbnail(data: data) {
-                                pickerItems.remove(at: index)
-                            }
+                        ForEach(photos) { photo in
+                            PhotoThumbnail(data: photo.data) { remove(photo) }
                         }
                     }
                     .padding(.vertical, 4)
@@ -151,17 +155,30 @@ struct ListItemView: View {
 
     private func loadPhotos(_ items: [PhotosPickerItem]) async {
         isLoadingPhotos = true
-        defer { isLoadingPhotos = false }
-        var loaded: [Data] = []
+        // A newer selection may still be loading. It clears the flag when it finishes.
+        defer { if items == pickerItems { isLoadingPhotos = false } }
+        // Photos still selected are already resized, so only new picks are loaded.
+        let alreadyLoaded = photos
+        var loaded: [PickedPhoto] = []
         for item in items {
+            if let photo = alreadyLoaded.first(where: { $0.item == item }) {
+                loaded.append(photo)
+                continue
+            }
             guard let raw = try? await item.loadTransferable(type: Data.self) else { continue }
             let prepared = await Task.detached(priority: .userInitiated) {
                 ListingService.preparePhoto(raw)
             }.value
-            if let prepared { loaded.append(prepared) }
+            if let prepared { loaded.append(PickedPhoto(item: item, data: prepared)) }
         }
         // Ignore stale results if the selection changed while loading.
         if items == pickerItems { photos = loaded }
+    }
+
+    /// Removes the photo and its picker selection together, so the two can't fall out of step.
+    private func remove(_ photo: PickedPhoto) {
+        photos.removeAll { $0.id == photo.id }
+        pickerItems.removeAll { $0 == photo.item }
     }
 
     private func post() async {
@@ -170,7 +187,7 @@ struct ListItemView: View {
         isPosting = true
         defer { isPosting = false }
         do {
-            try await listings.create(draft, photos: photos, at: coordinate)
+            try await listings.create(draft, photos: photos.map(\.data), at: coordinate)
             draft = ListingDraft()
             pickerItems = []
             photos = []
@@ -179,6 +196,13 @@ struct ListItemView: View {
             errorMessage = "Couldn't post: \(error.localizedDescription)"
         }
     }
+}
+
+/// A picked photo, resized and ready to upload, with the picker selection it came from.
+private struct PickedPhoto: Identifiable {
+    let id = UUID()
+    let item: PhotosPickerItem
+    let data: Data
 }
 
 private struct PhotoThumbnail: View {
