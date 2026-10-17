@@ -26,18 +26,18 @@ Notes for future work on this app. The product plan and roadmap live in PLAN.md.
 
 ## Web (`web/`)
 
-- Vite + React + TypeScript, deployed to Cloudflare Workers with static assets (`wrangler.jsonc`). `npm run check` typechecks, `npm run build` writes `dist/`, `npm run deploy` publishes to ananeo.app. Build-time settings are `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY`, and optional `VITE_APPLE_SIGN_IN`.
+- Vite + React + TypeScript, deployed to Cloudflare Workers with static assets (`wrangler.jsonc`). `npm run check` typechecks, `npm run build` writes `dist/`, `npm run deploy` publishes to ananeo.app. Build-time settings are `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY`, and `VITE_SIGN_IN_METHODS`.
 - Same service shape as iOS: `AuthProvider`, `ListingsProvider`, `PickupsProvider`, and `ChatProvider` in `src/services`, with a `revision` counter that pages watch. `src/lib/types.ts` mirrors the Postgres enums; raw values must match.
-- Sign-in is email magic link, plus a 6-digit code when the Supabase email template includes `{{ .Token }}`. Apple on the web needs a Services ID, so it's behind `VITE_APPLE_SIGN_IN`. In dev against the local stack the sign-in page also has a password form for throwaway accounts; it's compiled out of production builds.
+- `VITE_SIGN_IN_METHODS` picks the sign-in buttons (`email`, `apple`, `google`). ananeo.app uses Apple and Google only; email magic link exists but is off there because the built-in sender is rate-limited. Apple on the web needs a Services ID and a client secret that expires every six months. In dev against the local stack the sign-in page also has a password form for throwaway accounts; it's compiled out of production builds.
 - Photos are resized to 1600 px through a canvas, which also strips EXIF. Locations come from the browser Geolocation API and are fuzzed by the database like on iOS.
 - The landing page reads `community_impact()` signed out, so that function is granted to `anon`. `nearby_places()` backs the Donate tab.
 
 ## Web (`web/`)
 
-- Vite + React + TypeScript, deployed to Cloudflare Workers with static assets (`wrangler.jsonc`). `npm run check` typechecks, `npm run build` writes `dist/`, `npm run deploy` publishes to ananeo.app. Build-time settings are `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY`, and optional `VITE_APPLE_SIGN_IN`.
+- Vite + React + TypeScript, deployed to Cloudflare Workers with static assets (`wrangler.jsonc`). `npm run check` typechecks, `npm run build` writes `dist/`, `npm run deploy` publishes to ananeo.app. Build-time settings are `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY`, and `VITE_SIGN_IN_METHODS`.
 - Same service shape as iOS: `AuthProvider`, `ListingsProvider`, `PickupsProvider`, `ChatProvider`, and `TermsProvider` in `src/services`, with a `revision` counter that pages watch. `src/lib/types.ts` mirrors the Postgres enums; raw values must match.
 - The terms text is duplicated in `src/lib/terms.ts`. Keep it and `Shared/TermsOfUse.swift` in step, and bump the version in both. `/terms` shows them publicly; the gate after sign-in uses `my_terms_version` and remembers acceptance per user in `localStorage`.
-- Sign-in is email magic link, plus a 6-digit code when the Supabase email template includes `{{ .Token }}`. Apple on the web needs a Services ID, so it's behind `VITE_APPLE_SIGN_IN`. In dev against the local stack the sign-in page also has a password form for throwaway accounts; it's compiled out of production builds.
+- `VITE_SIGN_IN_METHODS` picks the sign-in buttons (`email`, `apple`, `google`). ananeo.app uses Apple and Google only; email magic link exists but is off there because the built-in sender is rate-limited. Apple on the web needs a Services ID and a client secret that expires every six months. In dev against the local stack the sign-in page also has a password form for throwaway accounts; it's compiled out of production builds.
 - Photos are resized to 1600 px through a canvas, which also strips EXIF. Locations come from the browser Geolocation API and are fuzzed by the database like on iOS.
 - The landing page reads `community_impact()` signed out, so that function is granted to `anon`. `nearby_places()` backs the Donate tab.
 - Blocks are enforced by RLS, so the web respects them without any UI of its own yet. Report and block screens are iOS-only so far.

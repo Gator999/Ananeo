@@ -36,7 +36,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_KEY: ${{ secrets.VITE_SUPABASE_KEY }}
-      VITE_APPLE_SIGN_IN: ${{ vars.VITE_APPLE_SIGN_IN }}
+      VITE_SIGN_IN_METHODS: ${{ vars.VITE_SIGN_IN_METHODS }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

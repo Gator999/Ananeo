@@ -10,7 +10,7 @@ interface AuthContextValue {
   /** Emails a sign-in link, and a code when the project's email template includes one. */
   sendCode: (email: string) => Promise<void>
   verifyCode: (email: string, code: string) => Promise<void>
-  signInWithApple: () => Promise<void>
+  signInWith: (provider: 'apple' | 'google') => Promise<void>
   /** Local stack only: password sign-in for throwaway test accounts. Not in production builds. */
   devSignIn: (email: string, password: string, name: string) => Promise<void>
   signOut: () => Promise<void>
@@ -49,8 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw new Error(error.message)
   }, [])
 
-  const signInWithApple = useCallback(async () => {
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: redirectTo() } })
+  const signInWith = useCallback(async (provider: 'apple' | 'google') => {
+    const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: redirectTo() } })
     if (error) throw new Error(error.message)
   }, [])
 
@@ -80,12 +80,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       userID: state.kind === 'signedIn' ? state.userID : undefined,
       sendCode,
       verifyCode,
-      signInWithApple,
+      signInWith,
       devSignIn,
       signOut,
       deleteAccount,
     }),
-    [state, sendCode, verifyCode, signInWithApple, devSignIn, signOut, deleteAccount],
+    [state, sendCode, verifyCode, signInWith, devSignIn, signOut, deleteAccount],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

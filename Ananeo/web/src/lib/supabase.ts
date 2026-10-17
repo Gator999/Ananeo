@@ -9,7 +9,13 @@ export const isConfigured = Boolean(url && key)
 /** True when pointed at the local `supabase start` stack. */
 export const isLocalBackend = Boolean(url && /^(https?:\/\/)?(127\.0\.0\.1|localhost)/.test(url))
 
-export const appleSignInEnabled = import.meta.env.VITE_APPLE_SIGN_IN === 'true'
+export type SignInMethod = 'email' | 'apple' | 'google'
+
+/** Which sign-in buttons to show, from VITE_SIGN_IN_METHODS (comma separated). Defaults to email only. */
+export const signInMethods: SignInMethod[] = ((import.meta.env.VITE_SIGN_IN_METHODS as string | undefined) ?? 'email')
+  .split(',')
+  .map((m) => m.trim().toLowerCase())
+  .filter((m): m is SignInMethod => m === 'email' || m === 'apple' || m === 'google')
 
 export const supabase = createClient(url ?? 'http://127.0.0.1:54321', key ?? 'missing')
 
