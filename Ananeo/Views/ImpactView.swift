@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ImpactView: View {
     @Environment(ItemStore.self) private var store
+    @Environment(AuthService.self) private var auth
+    @State private var confirmingDelete = false
 
     var body: some View {
         NavigationStack {
@@ -26,6 +28,25 @@ struct ImpactView: View {
                 }
             }
             .navigationTitle("Your Impact")
+            .toolbar {
+                Menu {
+                    Button("Sign Out") {
+                        Task { await auth.signOut() }
+                    }
+                    Button("Delete Account", role: .destructive) {
+                        confirmingDelete = true
+                    }
+                } label: {
+                    Label("Account", systemImage: "person.crop.circle")
+                }
+            }
+            .confirmationDialog("Delete your account?", isPresented: $confirmingDelete, titleVisibility: .visible) {
+                Button("Delete Account", role: .destructive) {
+                    Task { await auth.deleteAccount() }
+                }
+            } message: {
+                Text("Your listings, messages, and impact history will be permanently removed.")
+            }
         }
     }
 }
@@ -46,4 +67,5 @@ private struct ImpactStat: View {
 #Preview {
     ImpactView()
         .environment(ItemStore())
+        .environment(AuthService())
 }

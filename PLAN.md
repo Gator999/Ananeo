@@ -201,9 +201,10 @@ Week counts assume one developer part-time. Each phase ends with a TestFlight bu
 
 ### Phase 1 — Real data (weeks 1–3)
 
-- Create the Supabase project and schema with PostGIS and Row Level Security.
-- Sign in with Apple, and profile setup.
-- Post a listing with photos. Browse a nearby feed sorted by distance.
+- [x] Supabase schema with PostGIS and Row Level Security, with pgTAP tests (`supabase test db`).
+- [x] Sign in with Apple, profile creation, sign out, and account deletion.
+- [ ] Create the hosted Supabase project, push the migration, and add `Config/Secrets.xcconfig`.
+- [ ] Post a listing with photos. Browse a nearby feed sorted by distance.
 - Location permission flow and fuzzed listing location.
 - **Exit test:** two TestFlight users in the same city see each other's listings.
 
