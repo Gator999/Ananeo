@@ -19,7 +19,7 @@ struct RootView: View {
             }
         }
         .animation(.default, value: auth.state)
-        // One account's pickups, chats, and blocks must never show for the next.
+        // One account's pickups, messages, and blocks must never show for the next.
         .onChange(of: auth.state) {
             pickups.reset()
             chat.reset()

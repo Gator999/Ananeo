@@ -86,9 +86,10 @@ select throws_ok(
     $$insert into reports (target_type, target_id, reason) values ('item', '10000000-0000-0000-0000-000000000003', 'Other')$$,
     '42501', null, 'a listing you can''t see can''t be reported');
 
-select pg_temp.act_as('00000000-0000-0000-0000-00000000000a');
-insert into messages (id, conversation_id, body)
-values ('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Get lost');
+-- Alice's message, written directly so the test knows its ID. Clients can't choose message IDs.
+set local role postgres;
+insert into messages (id, conversation_id, sender_id, body)
+values ('30000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000a', 'Get lost');
 
 select pg_temp.act_as('00000000-0000-0000-0000-00000000000c');
 select throws_ok(

@@ -43,9 +43,6 @@ final class PickupService {
         let confirmed_by_me: Bool
         let confirmed_by_them: Bool
         let completed_at: Date?
-        let unread_count: Int
-        let last_message: String?
-        let last_message_mine: Bool?
     }
 
     func refresh() async throws {
@@ -86,10 +83,7 @@ final class PickupService {
                     requestedAt: row.requested_at,
                     handoff: row.handoff_id.map {
                         Handoff(id: $0, confirmedByMe: row.confirmed_by_me, confirmedByThem: row.confirmed_by_them, completedAt: row.completed_at)
-                    },
-                    unreadCount: row.unread_count,
-                    lastMessage: row.last_message,
-                    lastMessageIsMine: row.last_message_mine ?? false
+                    }
                 )
             }
             return Pickup(
@@ -115,38 +109,19 @@ final class PickupService {
         var errorDescription: String? { "This item is no longer available." }
     }
 
-    private struct RequestID: Decodable {
-        let id: UUID
-    }
-
-    /// Asks the owner for an item and returns the request, which is also the chat about it.
-    /// Asking twice is harmless.
-    @discardableResult
-    func request(_ listing: Listing) async throws -> UUID {
-        let request: RequestID
+    /// Asks the owner for an item. Asking twice is harmless.
+    func request(_ listing: Listing) async throws {
         do {
-            request = try await client.from("conversations")
-                .insert(NewRequest(item_id: listing.id, giver_id: listing.ownerID), returning: .representation)
-                .select("id")
-                .single()
+            try await client.from("conversations")
+                .insert(NewRequest(item_id: listing.id, giver_id: listing.ownerID))
                 .execute()
-                .value
         } catch let error as PostgrestError where error.code == "23505" {
             // Already asked, maybe from another device.
-            let userID = try await client.auth.session.user.id
-            request = try await client.from("conversations")
-                .select("id")
-                .eq("item_id", value: listing.id)
-                .eq("receiver_id", value: userID)
-                .single()
-                .execute()
-                .value
         } catch let error as PostgrestError where error.code == "42501" {
             // Reserved or taken down since the feed loaded.
             throw UnavailableError()
         }
         await changed()
-        return request.id
     }
 
     /// Withdraws a request. If the item was reserved for you, the giver can choose someone else.

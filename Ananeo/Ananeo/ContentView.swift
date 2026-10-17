@@ -8,7 +8,6 @@ struct ContentView: View {
     @Environment(PickupService.self) private var pickups
     @Environment(ChatService.self) private var chat
     @Environment(SafetyService.self) private var safety
-    @Environment(\.scenePhase) private var scenePhase
     @State private var selection: AppTab = .browse
 
     var body: some View {
@@ -23,7 +22,7 @@ struct ContentView: View {
             Tab("Pickups", systemImage: "arrow.left.arrow.right", value: .pickups) {
                 PickupsView()
             }
-            .badge(pickups.needsYouCount)
+            .badge(pickups.needsYouCount + chat.unreadCount(in: pickups.all))
             Tab("Donate", systemImage: "mappin.and.ellipse", value: .donate) {
                 DonationCentersView()
             }
@@ -31,14 +30,12 @@ struct ContentView: View {
                 ImpactView()
             }
         }
-        // One Realtime connection for the signed-in session. It ends when this view goes away at sign-out.
-        .task { await chat.listen() }
         .task { try? await safety.refresh() }
-        // Keep the tab badge right: at launch, when messages, handoffs, or blocks change, and on return to the app.
-        .task(id: [chat.revision, safety.revision]) { try? await pickups.refresh() }
-        .onChange(of: scenePhase) {
-            if scenePhase == .active { Task { try? await pickups.refresh() } }
-        }
+        // Load pickups at launch so the tab badge is right before the tab is opened, and again when
+        // blocks change, since blocking ends pickups in progress.
+        .task(id: safety.revision) { try? await pickups.refresh() }
+        // Keep unread counts live while signed in. Stops when this view goes away at sign-out.
+        .task { await chat.watchInbox() }
     }
 }
 
@@ -47,7 +44,7 @@ struct ContentView: View {
         .environment(PlacesStore())
         .environment(ListingService())
         .environment(PickupService.preview([.preview]))
-        .environment(ChatService.preview([]))
+        .environment(ChatService.preview())
         .environment(SafetyService())
         .environment(LocationService())
         .environment(AuthService())

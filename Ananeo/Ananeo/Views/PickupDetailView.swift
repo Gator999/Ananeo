@@ -4,6 +4,7 @@ import SwiftUI
 struct PickupDetailView: View {
     @Environment(PickupService.self) private var pickups
     @Environment(ListingService.self) private var listings
+    @Environment(ChatService.self) private var chat
     @Environment(\.dismiss) private var dismiss
 
     let itemID: UUID
@@ -48,6 +49,8 @@ struct PickupDetailView: View {
             } else {
                 gettingSections(pickup)
             }
+
+            messagesSection(pickup)
 
             if let errorMessage {
                 Section {
@@ -111,27 +114,22 @@ struct PickupDetailView: View {
         case .open:
             Section {
                 ForEach(pickup.requests) { request in
-                    NavigationLink {
-                        ChatView(conversationID: request.id, otherUserID: request.otherUserID, otherName: request.otherName)
-                    } label: {
-                        HStack {
-                            RequesterLabel(request: request)
-                            Spacer()
-                            Button("Reserve") { choosing = request }
-                                .buttonStyle(.bordered)
-                        }
+                    HStack {
+                        RequesterLabel(request: request)
+                        Spacer()
+                        Button("Reserve") { choosing = request }
+                            .buttonStyle(.bordered)
                     }
                 }
             } header: {
                 Text("Who Asked")
             } footer: {
-                Text("Tap someone to message them. Choose one person; you can cancel and choose someone else if plans fall through.")
+                Text("Choose one person. You can cancel and choose someone else if plans fall through.")
             }
 
         case .reserved:
             if let reservation = pickup.reservation, let handoff = reservation.handoff {
                 Section {
-                    chatLink(reservation)
                     ConfirmationStatus(handoff: handoff, otherName: reservation.otherName)
                     if !handoff.confirmedByMe {
                         Button("Confirm Handoff", systemImage: "checkmark.circle") { confirmingHandoff = true }
@@ -146,13 +144,7 @@ struct PickupDetailView: View {
                 let others = pickup.requests.filter { $0.id != reservation.id }
                 if !others.isEmpty {
                     Section("Also Asked") {
-                        ForEach(others) { request in
-                            NavigationLink {
-                                ChatView(conversationID: request.id, otherUserID: request.otherUserID, otherName: request.otherName)
-                            } label: {
-                                RequesterLabel(request: request)
-                            }
-                        }
+                        ForEach(others) { RequesterLabel(request: $0) }
                     }
                 }
             }
@@ -174,12 +166,6 @@ struct PickupDetailView: View {
     @ViewBuilder
     private func gettingSections(_ pickup: Pickup) -> some View {
         let giver = pickup.requests.first?.otherName ?? "The giver"
-
-        if let request = pickup.requests.first {
-            Section {
-                chatLink(request)
-            }
-        }
 
         switch pickup.stage {
         case .open:
@@ -222,23 +208,26 @@ struct PickupDetailView: View {
 
     // MARK: - Shared
 
-    private func chatLink(_ request: PickupRequest) -> some View {
-        NavigationLink {
-            ChatView(conversationID: request.id, otherUserID: request.otherUserID, otherName: request.otherName)
-        } label: {
-            HStack {
-                Label("Message \(request.otherName)", systemImage: "bubble.left.and.bubble.right")
-                Spacer()
-                UnreadBadge(count: request.unreadCount)
+    /// One chat per request. Givers see the reservation first, then everyone else who asked.
+    @ViewBuilder
+    private func messagesSection(_ pickup: Pickup) -> some View {
+        let reservation = pickup.reservation
+        let requests = reservation.map { held in [held] + pickup.requests.filter { $0.id != held.id } } ?? pickup.requests
+        if !requests.isEmpty {
+            Section("Messages") {
+                ForEach(requests) { request in
+                    NavigationLink {
+                        ChatView(request: request, itemTitle: pickup.title)
+                    } label: {
+                        ChatLink(request: request, summary: chat.summary(for: request))
+                    }
+                }
             }
         }
     }
 
     private func completedSection(_ pickup: Pickup, with reservation: PickupRequest) -> some View {
         Section {
-            if pickup.isGiver {
-                chatLink(reservation)
-            }
             if let completedAt = reservation.handoff?.completedAt {
                 LabeledContent(pickup.isGiver ? "Given to \(reservation.otherName)" : "Received from \(reservation.otherName)") {
                     Text(completedAt, format: .dateTime.month().day())
@@ -272,21 +261,43 @@ private struct RequesterLabel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 6) {
-                Text(request.otherName)
-                UnreadBadge(count: request.unreadCount)
-            }
-            Group {
-                if let lastMessage = request.lastMessage {
-                    Text(request.lastMessageIsMine ? "You: \(lastMessage)" : lastMessage)
-                } else {
-                    Text("Asked \(request.requestedAt.formatted(.relative(presentation: .named)))")
-                }
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
+            Text(request.otherName)
+            Text("Asked \(request.requestedAt.formatted(.relative(presentation: .named)))")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
+    }
+}
+
+/// A request's chat, with its latest message and unread count.
+private struct ChatLink: View {
+    let request: PickupRequest
+    let summary: ChatSummary?
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(request.otherName)
+                Text(preview)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            if let unread = summary?.unreadCount, unread > 0 {
+                Text("\(unread)")
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(Color.accentColor, in: Capsule())
+            }
+        }
+    }
+
+    private var preview: String {
+        guard let summary else { return "Message \(request.otherName)" }
+        return summary.lastSenderIsMe ? "You: \(summary.lastBody)" : summary.lastBody
     }
 }
 
@@ -316,7 +327,5 @@ private struct ConfirmationStatus: View {
     }
     .environment(PickupService.preview([.preview]))
     .environment(ListingService())
-    .environment(ChatService.preview([]))
-    .environment(AuthService())
-    .environment(SafetyService())
+    .environment(ChatService.preview())
 }

@@ -215,7 +215,7 @@ Week counts assume one developer part-time. Each phase ends with a TestFlight bu
 
 ### Phase 2 — Handoffs (weeks 4–6)
 
-- [x] In-app chat per item, live over Realtime, with unread counts on the Pickups tab. Reservations and confirmations also update live.
+- [x] In-app chat per item, live over Realtime, with unread counts on the Pickups tab.
 - Push notifications for new messages and reservations.
 - [x] Request an item, reserve it for one requester, then both sides confirm the handoff. A Pickups tab tracks each item from request to handoff.
 - Impact tab driven by real handoffs.

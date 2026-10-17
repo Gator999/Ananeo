@@ -1,66 +1,58 @@
--- Chat on pickup requests: read markers, unread counts, and a last-message preview.
--- Messages themselves were created in the initial schema and are already published to Realtime.
+-- Chat on pickup requests.
+-- Messages already hang off a conversation row (see the initial schema), with participant-only
+-- policies and realtime. This adds what the app needs around them: where each person has read up
+-- to, and an inbox summary so the Pickups tab can show the latest message and an unread count.
 
 -- ---------------------------------------------------------------------------
--- Clients choose only what a message or request says. Sender, timestamps, and read markers come
--- from defaults and functions, so nobody can backdate a message or mark the other side as read.
--- Clients may pick the row ID, which lets the app recognize its own message when Realtime echoes it.
+-- Read state, one row per person per conversation. Written only through mark_conversation_read.
 -- ---------------------------------------------------------------------------
 
-revoke insert on public.messages from authenticated;
-grant insert (id, conversation_id, body) on public.messages to authenticated;
+create table public.conversation_reads (
+    conversation_id uuid not null references public.conversations (id) on delete cascade,
+    user_id uuid not null references public.profiles (id) on delete cascade,
+    read_at timestamptz not null default now(),
+    primary key (conversation_id, user_id)
+);
 
-revoke insert on public.conversations from authenticated;
-grant insert (id, item_id, giver_id) on public.conversations to authenticated;
+alter table public.conversation_reads enable row level security;
+
+create policy "reads own" on public.conversation_reads
+    for select to authenticated
+    using (user_id = (select auth.uid()));
 
 -- ---------------------------------------------------------------------------
--- Read markers. A message is unread when the other person sent it after you last opened the chat.
+-- Marks everything in a conversation as read for the signed-in user.
 -- ---------------------------------------------------------------------------
-
-alter table public.conversations
-    add column giver_read_at timestamptz,
-    add column receiver_read_at timestamptz;
 
 create function public.mark_conversation_read(p_conversation_id uuid)
 returns void
-language sql
+language plpgsql
 security definer
 set search_path = ''
 as $$
-    update public.conversations
-    set giver_read_at = case when giver_id = (select auth.uid()) then now() else giver_read_at end,
-        receiver_read_at = case when receiver_id = (select auth.uid()) then now() else receiver_read_at end
-    where id = p_conversation_id
-      and (select auth.uid()) in (giver_id, receiver_id);
+begin
+    if not public.is_conversation_member(p_conversation_id) then
+        raise exception 'Not part of this conversation' using errcode = '42501';
+    end if;
+
+    insert into public.conversation_reads (conversation_id, user_id)
+    values (p_conversation_id, (select auth.uid()))
+    on conflict (conversation_id, user_id) do update set read_at = now();
+end;
 $$;
 
 -- ---------------------------------------------------------------------------
--- my_pickups gains unread counts and the latest message, and sorts by latest activity.
--- The return type changes, so the function is dropped and created again.
+-- One row per conversation the signed-in user is in that has messages: the latest message and
+-- how many messages from the other person arrived after they last read it.
 -- ---------------------------------------------------------------------------
 
-drop function public.my_pickups();
-
-create function public.my_pickups()
+create function public.my_chats()
 returns table (
-    request_id uuid,
-    item_id uuid,
-    title text,
-    category public.item_category,
-    photo text,
-    item_status public.item_status,
-    is_giver boolean,
-    other_user_id uuid,
-    other_name text,
-    requested_at timestamptz,
-    handoff_id uuid,
-    confirmed_by_me boolean,
-    confirmed_by_them boolean,
-    completed_at timestamptz,
-    unread_count bigint,
-    last_message text,
-    last_message_at timestamptz,
-    last_message_mine boolean
+    conversation_id uuid,
+    last_body text,
+    last_sender_is_me boolean,
+    last_at timestamptz,
+    unread_count integer
 )
 language sql
 stable
@@ -69,54 +61,41 @@ set search_path = ''
 as $$
     select
         c.id,
-        i.id,
-        i.title,
-        i.category,
-        i.photos[1],
-        i.status,
-        c.giver_id = me.id,
-        other.id,
-        other.display_name,
-        c.created_at,
-        h.id,
-        coalesce(case when c.giver_id = me.id then h.confirmed_by_giver else h.confirmed_by_receiver end, false),
-        coalesce(case when c.giver_id = me.id then h.confirmed_by_receiver else h.confirmed_by_giver end, false),
-        h.completed_at,
+        last.body,
+        last.sender_id = me.id,
+        last.created_at,
         (
-            select count(*) from public.messages m
+            select count(*)::integer from public.messages m
             where m.conversation_id = c.id
               and m.sender_id <> me.id
-              and m.created_at > coalesce(
-                  case when c.giver_id = me.id then c.giver_read_at else c.receiver_read_at end,
-                  '-infinity'
-              )
-        ),
-        lm.body,
-        lm.created_at,
-        lm.sender_id = me.id
+              and m.created_at > coalesce(r.read_at, '-infinity')
+        )
     from (select (select auth.uid()) as id) me
     join public.conversations c on me.id in (c.giver_id, c.receiver_id)
-    join public.items i on i.id = c.item_id
-    join public.profiles other on other.id = case when c.giver_id = me.id then c.receiver_id else c.giver_id end
-    left join public.handoffs h on h.item_id = c.item_id and h.receiver_id = c.receiver_id
-    left join lateral (
-        select m.body, m.created_at, m.sender_id from public.messages m
+    join lateral (
+        select m.body, m.sender_id, m.created_at from public.messages m
         where m.conversation_id = c.id
         order by m.created_at desc, m.id desc
         limit 1
-    ) lm on true
-    -- A block hides open requests, but not a reservation, so the giver can still cancel it.
-    where (h.id is not null or not public.is_blocked(c.giver_id, c.receiver_id))
-      and not (c.giver_id = me.id and h.id is null and i.status in ('removed', 'handed_off'))
-    order by greatest(c.created_at, h.completed_at, lm.created_at) desc;
+    ) last on true
+    left join public.conversation_reads r on r.conversation_id = c.id and r.user_id = me.id;
 $$;
 
 -- ---------------------------------------------------------------------------
 -- Privileges. New functions are executable by everyone by default, so start from nothing.
 -- ---------------------------------------------------------------------------
 
+-- The server stamps the sender and time, so a client can't post as someone else or reorder a chat.
+-- Requests get the same treatment so a client can't backdate one to jump the giver's list.
+revoke insert on public.messages, public.conversations from authenticated;
+grant insert (conversation_id, body) on public.messages to authenticated;
+grant insert (id, item_id, giver_id) on public.conversations to authenticated;
+
+revoke all on public.conversation_reads from anon, authenticated;
+grant select on public.conversation_reads to authenticated;
+
 revoke execute on function public.mark_conversation_read(uuid) from public, anon, authenticated;
-revoke execute on function public.my_pickups() from public, anon, authenticated;
+revoke execute on function public.my_chats() from public, anon, authenticated;
 
 grant execute on function public.mark_conversation_read(uuid) to authenticated;
-grant execute on function public.my_pickups() to authenticated;
+grant execute on function public.my_chats() to authenticated;
