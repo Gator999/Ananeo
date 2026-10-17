@@ -107,22 +107,27 @@ struct PickupDetailView: View {
         case .open:
             Section {
                 ForEach(pickup.requests) { request in
-                    HStack {
-                        RequesterLabel(request: request)
-                        Spacer()
-                        Button("Reserve") { choosing = request }
-                            .buttonStyle(.bordered)
+                    NavigationLink {
+                        ChatView(conversationID: request.id, otherName: request.otherName)
+                    } label: {
+                        HStack {
+                            RequesterLabel(request: request)
+                            Spacer()
+                            Button("Reserve") { choosing = request }
+                                .buttonStyle(.bordered)
+                        }
                     }
                 }
             } header: {
                 Text("Who Asked")
             } footer: {
-                Text("Choose one person. You can cancel and choose someone else if plans fall through.")
+                Text("Tap someone to message them. Choose one person; you can cancel and choose someone else if plans fall through.")
             }
 
         case .reserved:
             if let reservation = pickup.reservation, let handoff = reservation.handoff {
                 Section {
+                    chatLink(reservation)
                     ConfirmationStatus(handoff: handoff, otherName: reservation.otherName)
                     if !handoff.confirmedByMe {
                         Button("Confirm Handoff", systemImage: "checkmark.circle") { confirmingHandoff = true }
@@ -137,7 +142,13 @@ struct PickupDetailView: View {
                 let others = pickup.requests.filter { $0.id != reservation.id }
                 if !others.isEmpty {
                     Section("Also Asked") {
-                        ForEach(others) { RequesterLabel(request: $0) }
+                        ForEach(others) { request in
+                            NavigationLink {
+                                ChatView(conversationID: request.id, otherName: request.otherName)
+                            } label: {
+                                RequesterLabel(request: request)
+                            }
+                        }
                     }
                 }
             }
@@ -159,6 +170,12 @@ struct PickupDetailView: View {
     @ViewBuilder
     private func gettingSections(_ pickup: Pickup) -> some View {
         let giver = pickup.requests.first?.otherName ?? "The giver"
+
+        if let request = pickup.requests.first {
+            Section {
+                chatLink(request)
+            }
+        }
 
         switch pickup.stage {
         case .open:
@@ -201,8 +218,23 @@ struct PickupDetailView: View {
 
     // MARK: - Shared
 
+    private func chatLink(_ request: PickupRequest) -> some View {
+        NavigationLink {
+            ChatView(conversationID: request.id, otherName: request.otherName)
+        } label: {
+            HStack {
+                Label("Message \(request.otherName)", systemImage: "bubble.left.and.bubble.right")
+                Spacer()
+                UnreadBadge(count: request.unreadCount)
+            }
+        }
+    }
+
     private func completedSection(_ pickup: Pickup, with reservation: PickupRequest) -> some View {
         Section {
+            if pickup.isGiver {
+                chatLink(reservation)
+            }
             if let completedAt = reservation.handoff?.completedAt {
                 LabeledContent(pickup.isGiver ? "Given to \(reservation.otherName)" : "Received from \(reservation.otherName)") {
                     Text(completedAt, format: .dateTime.month().day())
@@ -236,10 +268,20 @@ private struct RequesterLabel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(request.otherName)
-            Text("Asked \(request.requestedAt.formatted(.relative(presentation: .named)))")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 6) {
+                Text(request.otherName)
+                UnreadBadge(count: request.unreadCount)
+            }
+            Group {
+                if let lastMessage = request.lastMessage {
+                    Text(request.lastMessageIsMine ? "You: \(lastMessage)" : lastMessage)
+                } else {
+                    Text("Asked \(request.requestedAt.formatted(.relative(presentation: .named)))")
+                }
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
         }
     }
 }
@@ -270,4 +312,6 @@ private struct ConfirmationStatus: View {
     }
     .environment(PickupService.preview([.preview]))
     .environment(ListingService())
+    .environment(ChatService.preview([]))
+    .environment(AuthService())
 }

@@ -83,6 +83,10 @@ struct PickupRow: View {
                     .font(.caption)
                     .foregroundStyle(pickup.needsYou ? Color.accentColor : Color.secondary)
             }
+
+            Spacer()
+
+            UnreadBadge(count: pickup.unreadCount)
         }
     }
 
@@ -105,8 +109,27 @@ struct PickupRow: View {
     }
 }
 
+/// How many unread messages there are, or nothing when there are none.
+struct UnreadBadge: View {
+    let count: Int
+
+    var body: some View {
+        if count > 0 {
+            Text("\(count)")
+                .font(.caption2.bold())
+                .foregroundStyle(.white)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.accentColor, in: Capsule())
+                .accessibilityLabel("\(count) unread")
+        }
+    }
+}
+
 #Preview {
     PickupsView()
         .environment(PickupService.preview([.preview]))
         .environment(ListingService())
+        .environment(ChatService.preview([]))
+        .environment(AuthService())
 }
