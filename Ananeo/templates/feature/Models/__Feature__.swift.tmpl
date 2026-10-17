@@ -1,0 +1,30 @@
+import Foundation
+
+// TODO: Say what one __Title__ is, in the user's words, then add its columns below.
+/// A row in `public.__table__`.
+struct __Feature__: Identifiable, Hashable, Decodable {
+    let id: UUID
+    let ownerID: UUID
+    let title: String
+    let createdAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case ownerID = "owner_id"
+        case title
+        case createdAt = "created_at"
+    }
+}
+
+/// What the form collects before saving.
+struct __Feature__Draft {
+    var title = ""
+
+    var trimmedTitle: String { title.trimmingCharacters(in: .whitespacesAndNewlines) }
+}
+
+extension __Feature__ {
+    static let preview = __Feature__(
+        id: UUID(), ownerID: UUID(), title: "Sample __Title__", createdAt: .now
+    )
+}

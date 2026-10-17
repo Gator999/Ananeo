@@ -1,0 +1,113 @@
+import SwiftUI
+
+/// The signed-in user's __table__, with add and swipe to delete.
+struct __Feature__ListView: View {
+    @Environment(__Feature__Service.self) private var service
+
+    @State private var errorMessage: String?
+    @State private var adding = false
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let errorMessage {
+                    Section {
+                        Text(errorMessage).foregroundStyle(.red)
+                    }
+                }
+                ForEach(service.all) { row in
+                    Text(row.title)
+                }
+                .onDelete(perform: delete)
+            }
+            .overlay {
+                if service.hasLoaded && service.all.isEmpty {
+                    ContentUnavailableView(
+                        "No __Titles__ Yet",
+                        systemImage: "tray",
+                        description: Text("Tap + to add one.")
+                    )
+                }
+            }
+            .navigationTitle("__Titles__")
+            .refreshable { await load() }
+            .task(id: service.revision) { await load() }
+            .toolbar {
+                Button("Add", systemImage: "plus") { adding = true }
+            }
+            .sheet(isPresented: $adding) {
+                New__Feature__Sheet()
+            }
+        }
+    }
+
+    private func load() async {
+        do {
+            try await service.refresh()
+            errorMessage = nil
+        } catch is CancellationError {
+        } catch {
+            errorMessage = "Couldn't load: \(error.localizedDescription)"
+        }
+    }
+
+    private func delete(at offsets: IndexSet) {
+        let rows = offsets.map { service.all[$0] }
+        Task {
+            do {
+                for row in rows {
+                    try await service.delete(row)
+                }
+            } catch {
+                errorMessage = "Couldn't delete: \(error.localizedDescription)"
+            }
+        }
+    }
+}
+
+private struct New__Feature__Sheet: View {
+    @Environment(__Feature__Service.self) private var service
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var draft = __Feature__Draft()
+    @State private var saving = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                TextField("Title", text: $draft.title)
+                if let errorMessage {
+                    Text(errorMessage).foregroundStyle(.red)
+                }
+            }
+            .navigationTitle("New __Title__")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { Task { await save() } }
+                        .disabled(draft.trimmedTitle.isEmpty || saving)
+                }
+            }
+        }
+    }
+
+    private func save() async {
+        saving = true
+        defer { saving = false }
+        do {
+            try await service.create(draft)
+            dismiss()
+        } catch {
+            errorMessage = "Couldn't save: \(error.localizedDescription)"
+        }
+    }
+}
+
+#Preview {
+    __Feature__ListView()
+        .environment(__Feature__Service.preview([.preview]))
+}

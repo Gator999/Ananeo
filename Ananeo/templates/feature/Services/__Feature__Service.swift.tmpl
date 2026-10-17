@@ -1,0 +1,77 @@
+import Foundation
+import Observation
+import Supabase
+
+/// Reads and writes the signed-in user's __table__.
+/// Keeps them in memory so every screen that shows them agrees.
+@MainActor
+@Observable
+final class __Feature__Service {
+    static let table = "__table__"
+
+    private(set) var all: [__Feature__] = []
+    private(set) var hasLoaded = false
+    /// Bumped after any change so views know to reload.
+    private(set) var revision = 0
+
+    @ObservationIgnored private let client: SupabaseClient
+
+    init(client: SupabaseClient = Backend.client) {
+        self.client = client
+    }
+
+    // MARK: - Reading
+
+    func refresh() async throws {
+        all = try await client.from(Self.table)
+            .select()
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+        hasLoaded = true
+    }
+
+    /// Forgets everything, for when the signed-in account changes.
+    func reset() {
+        all = []
+        hasLoaded = false
+    }
+
+    /// For SwiftUI previews.
+    static func preview(_ rows: [__Feature__]) -> __Feature__Service {
+        let service = __Feature__Service()
+        service.all = rows
+        service.hasLoaded = true
+        return service
+    }
+
+    // MARK: - Writing
+
+    /// Only the columns the app may set. The database fills in the owner and timestamps.
+    private struct New__Feature__: Encodable {
+        let title: String
+    }
+
+    func create(_ draft: __Feature__Draft) async throws {
+        try await client.from(Self.table)
+            .insert(New__Feature__(title: draft.trimmedTitle))
+            .execute()
+        revision += 1
+    }
+
+    func rename(_ row: __Feature__, to title: String) async throws {
+        try await client.from(Self.table)
+            .update(["title": title.trimmingCharacters(in: .whitespacesAndNewlines)])
+            .eq("id", value: row.id)
+            .execute()
+        revision += 1
+    }
+
+    func delete(_ row: __Feature__) async throws {
+        try await client.from(Self.table)
+            .delete()
+            .eq("id", value: row.id)
+            .execute()
+        revision += 1
+    }
+}
