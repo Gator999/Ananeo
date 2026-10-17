@@ -1,0 +1,75 @@
+-- __Title__
+-- TODO: One or two lines on what this adds and why.
+--
+-- Rules every Ananeo migration follows:
+--   * Never edit a migration that has been applied to the hosted project. Add a new one.
+--   * Row Level Security is on for every table.
+--   * Writes that span rows go through security definer functions with set search_path = ''.
+--   * Grants are explicit. New tables and functions start with no access, then get only what they need.
+
+-- ---------------------------------------------------------------------------
+-- Table
+-- ---------------------------------------------------------------------------
+
+create table public.__table__ (
+    id uuid primary key default gen_random_uuid(),
+    owner_id uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+    title text not null check (char_length(title) between 1 and 80),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+create index __table___owner_idx on public.__table__ (owner_id, created_at desc);
+
+-- The owner and creation time never change, and updated_at is kept current.
+create function public.__table___before_update()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+    new.owner_id := old.owner_id;
+    new.created_at := old.created_at;
+    new.updated_at := now();
+    return new;
+end;
+$$;
+
+create trigger __table___before_update
+    before update on public.__table__
+    for each row execute function public.__table___before_update();
+
+-- ---------------------------------------------------------------------------
+-- Row Level Security
+-- TODO: Loosen "readable" if other people should see these rows, and hide
+-- rows across a block with public.is_blocked(owner_id, (select auth.uid())).
+-- ---------------------------------------------------------------------------
+
+alter table public.__table__ enable row level security;
+
+create policy "__table__ readable" on public.__table__
+    for select to authenticated
+    using (owner_id = (select auth.uid()));
+create policy "__table__ insert own" on public.__table__
+    for insert to authenticated
+    with check (owner_id = (select auth.uid()));
+create policy "__table__ update own" on public.__table__
+    for update to authenticated
+    using (owner_id = (select auth.uid()))
+    with check (owner_id = (select auth.uid()));
+create policy "__table__ delete own" on public.__table__
+    for delete to authenticated
+    using (owner_id = (select auth.uid()));
+
+-- ---------------------------------------------------------------------------
+-- Privileges. Start from nothing, then grant only the columns the app writes.
+-- ---------------------------------------------------------------------------
+
+revoke all on public.__table__ from anon, authenticated;
+grant select, delete on public.__table__ to authenticated;
+grant insert (title), update (title) on public.__table__ to authenticated;
+
+revoke execute on function public.__table___before_update() from public, anon, authenticated;
+
+-- Uncomment if the app should get live updates for this table.
+-- alter publication supabase_realtime add table public.__table__;
