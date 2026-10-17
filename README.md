@@ -1,5 +1,8 @@
 # Ananeo
 
-iOS app for giving away, swapping, and reusing items locally. *Give More. Waste Less. Keep It Moving.*
+App for giving away, swapping, and reusing items locally. *Give More. Waste Less. Keep It Moving.*
 
-The app, its Supabase backend, and its scripts live in [`Ananeo/`](Ananeo/).
+| Part | Description |
+|---|---|
+| [iOS app](Ananeo/) | The native app, plus the Supabase backend and scripts. |
+| [Web](Ananeo/web/) | The same app in the browser plus the public site, at [ananeo.app](https://ananeo.app). |

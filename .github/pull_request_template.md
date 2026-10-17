@@ -17,5 +17,10 @@ After:
 - [ ] Tried in the simulator with `scripts/dev-simulator.sh`.
 - [ ] New services are passed in with `.environment(...)` in `AnaneoApp` and in previews.
 
+**Web** (skip if `web/` is untouched)
+- [ ] `npm run check` and `npm run build` pass.
+- [ ] Tried in the browser against `supabase start`, as two different accounts where it matters.
+
 **After merge**
 - [ ] `supabase db push` to apply new migrations to the hosted project.
+- [ ] ananeo.app redeploys from `main` (Cloudflare Workers Builds or the Web workflow).

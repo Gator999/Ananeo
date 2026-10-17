@@ -16,14 +16,14 @@ Ananeo keeps useful products and materials in circulation by connecting people w
 | Google Play | No app titled Ananeo in US search. Only fuzzy matches such as "Ana" and "Anan". | Clear |
 | ananeo.com | Registered since 2012 by someone else. | Taken |
 | ananeo.org | Registered since 2021 by someone else. | Taken |
-| ananeo.app | Not registered. | **Available** |
+| ananeo.app | Registered on Cloudflare, 2026-10-17. | **Done** |
 | ananeo.co, ananeo.io | Not registered. | Available |
 | getananeo.com, ananeoapp.com | Not registered. | Available |
 | US trademark (USPTO) | Not yet checked. | **To do** |
 
 **Actions before launch**
 
-1. Register **ananeo.app** now. It matches the product, and `.app` forces HTTPS. Also grab **getananeo.com** so a `.com` exists for email and marketing.
+1. ~~Register **ananeo.app** now.~~ Done. Also grab **getananeo.com** so a `.com` exists for email and marketing.
 2. Search USPTO at tmsearch.uspto.gov for "Ananeo" and close spellings in Class 9 (software) and Class 42 (online platforms). If nothing conflicts, consider filing an intent-to-use application. A trademark attorney review is worth the cost before any paid marketing.
 3. Reserve the Google Play package name `com.cameronnutter.ananeo` by creating the app in Play Console once the Android build starts.
 4. Claim social handles (@ananeo or @ananeoapp) on Instagram, TikTok, and X.
@@ -139,7 +139,7 @@ User-generated content apps get extra App Review scrutiny under guideline 1.2. T
 | Push | APNs through a Supabase Edge Function | Messages, reservations, and challenge updates. |
 | Maps | MapKit on iOS | Free and native. |
 | Android, later | Kotlin with Jetpack Compose | Reuses the same backend. |
-| Web, later | Next.js | Public listing pages for sharing, and the partner dashboard. |
+| Web | Vite + React SPA on Cloudflare Workers (`web/`) | The landing page and the full app in the browser, on the same backend. Public listing pages with link previews and the partner dashboard would need server rendering; revisit then. |
 
 The original concept called for all three platforms. Launching iOS alone first is faster. The backend should be designed for all three from day one, so the API never depends on iOS-only behavior.
 
@@ -236,7 +236,7 @@ Week counts assume one developer part-time. Each phase ends with a TestFlight bu
 - Challenges with a live progress bar.
 - Onboarding that explains the mission in three screens.
 - App Store screenshots, privacy labels, and review notes describing moderation.
-- Landing page at ananeo.app with the impact methodology.
+- [x] Landing page at ananeo.app with the impact methodology, and the app itself in the browser at ananeo.app/app (`web/`).
 - **Launch:** one city or one campus. Density matters more than reach for a local app.
 
 ### Phase 5 — Growth (after launch)

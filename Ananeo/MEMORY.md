@@ -24,10 +24,29 @@ Notes for future work on this app. The product plan and roadmap live in PLAN.md.
 - Services are `@MainActor @Observable` and expose a `revision` counter that views use to reload. `PickupService`, `ChatService`, and `SafetyService` cache the signed-in user's pickups, chat summaries, and blocks, and `RootView` clears all three when the account changes.
 - `scripts/dev-simulator.sh` runs the app against the local stack with a test account.
 
+## Web (`web/`)
+
+- Vite + React + TypeScript, deployed to Cloudflare Workers with static assets (`wrangler.jsonc`). `npm run check` typechecks, `npm run build` writes `dist/`, `npm run deploy` publishes to ananeo.app. Build-time settings are `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY`, and optional `VITE_APPLE_SIGN_IN`.
+- Same service shape as iOS: `AuthProvider`, `ListingsProvider`, `PickupsProvider`, and `ChatProvider` in `src/services`, with a `revision` counter that pages watch. `src/lib/types.ts` mirrors the Postgres enums; raw values must match.
+- Sign-in is email magic link, plus a 6-digit code when the Supabase email template includes `{{ .Token }}`. Apple on the web needs a Services ID, so it's behind `VITE_APPLE_SIGN_IN`. In dev against the local stack the sign-in page also has a password form for throwaway accounts; it's compiled out of production builds.
+- Photos are resized to 1600 px through a canvas, which also strips EXIF. Locations come from the browser Geolocation API and are fuzzed by the database like on iOS.
+- The landing page reads `community_impact()` signed out, so that function is granted to `anon`. `nearby_places()` backs the Donate tab.
+
+## Web (`web/`)
+
+- Vite + React + TypeScript, deployed to Cloudflare Workers with static assets (`wrangler.jsonc`). `npm run check` typechecks, `npm run build` writes `dist/`, `npm run deploy` publishes to ananeo.app. Build-time settings are `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY`, and optional `VITE_APPLE_SIGN_IN`.
+- Same service shape as iOS: `AuthProvider`, `ListingsProvider`, `PickupsProvider`, `ChatProvider`, and `TermsProvider` in `src/services`, with a `revision` counter that pages watch. `src/lib/types.ts` mirrors the Postgres enums; raw values must match.
+- The terms text is duplicated in `src/lib/terms.ts`. Keep it and `Shared/TermsOfUse.swift` in step, and bump the version in both. `/terms` shows them publicly; the gate after sign-in uses `my_terms_version` and remembers acceptance per user in `localStorage`.
+- Sign-in is email magic link, plus a 6-digit code when the Supabase email template includes `{{ .Token }}`. Apple on the web needs a Services ID, so it's behind `VITE_APPLE_SIGN_IN`. In dev against the local stack the sign-in page also has a password form for throwaway accounts; it's compiled out of production builds.
+- Photos are resized to 1600 px through a canvas, which also strips EXIF. Locations come from the browser Geolocation API and are fuzzed by the database like on iOS.
+- The landing page reads `community_impact()` signed out, so that function is granted to `anon`. `nearby_places()` backs the Donate tab.
+- Blocks are enforced by RLS, so the web respects them without any UI of its own yet. Report and block screens are iOS-only so far.
+
 ## Testing in a cloud container
 
 - There is no Xcode, so SwiftUI views can't be compiled there. Build in Xcode before merging.
-- Database tests work. Start `dockerd`, download the Supabase CLI release binary, then run `supabase db start` and `supabase test db`. Docker Hub sometimes rate-limits image pulls, and retrying usually works.
+- Database tests work. Start `dockerd`, install the CLI with `npm install supabase` (GitHub release downloads may be blocked, npm is not), then run `supabase start` and `supabase test db`. Docker Hub sometimes rate-limits image pulls, and retrying usually works.
 - The tests assume an empty database. Run `supabase db reset` first if you've used the local stack for anything else.
+- The full local stack runs too, so the web app can be driven end to end with Playwright against `supabase start`: use the developer sign-in form with two different emails for the two sides of a pickup.
 - The non-UI code can be compiled and run on Linux in the `swift:6.1-noble` Docker image, which gives a real compile check. Build a small package with `Models/`, `Shared/`, and the services that don't import UIKit or AuthenticationServices, against supabase-swift at the revision in `Package.resolved`. Linux needs three adjustments: a stand-in `Backend`, an in-memory `AuthLocalStorage`, and the linker flag `-Xlinker --allow-shlib-undefined`.
 - Linux Foundation can't open `ws://` sockets, so test Realtime with a Python `websockets` client that joins the same channel config instead.
