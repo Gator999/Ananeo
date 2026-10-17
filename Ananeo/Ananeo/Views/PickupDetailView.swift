@@ -17,11 +17,14 @@ struct PickupDetailView: View {
     @State private var confirmingWithdraw = false
 
     var body: some View {
-        if let pickup = pickups.pickup(for: itemID) {
-            content(pickup)
-        } else {
-            ContentUnavailableView("No Longer in Pickups", systemImage: "tray")
+        Group {
+            if let pickup = pickups.pickup(for: itemID) {
+                content(pickup)
+            } else {
+                ContentUnavailableView("No Longer in Pickups", systemImage: "tray")
+            }
         }
+        .hidesFloatingTabBar()
     }
 
     private func content(_ pickup: Pickup) -> some View {

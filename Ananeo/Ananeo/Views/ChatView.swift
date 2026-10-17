@@ -38,6 +38,7 @@ struct ChatView: View {
             }
         }
         .safeAreaInset(edge: .bottom) { composer }
+        .hidesFloatingTabBar()
         .navigationTitle(request.otherName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

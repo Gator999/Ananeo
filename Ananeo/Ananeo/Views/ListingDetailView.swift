@@ -58,6 +58,7 @@ struct ListingDetailView: View {
             isPastHero = isPast
         }
         .safeAreaInset(edge: .bottom) { actionBar }
+        .hidesFloatingTabBar()
         .navigationTitle(isPastHero ? listing.title : "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(isPastHero ? .visible : .hidden, for: .navigationBar)
