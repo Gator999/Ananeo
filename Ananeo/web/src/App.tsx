@@ -10,10 +10,12 @@ import { ListingDetail } from './pages/ListingDetail'
 import { PickupDetail } from './pages/PickupDetail'
 import { Pickups } from './pages/Pickups'
 import { SignIn } from './pages/SignIn'
+import { TermsPage } from './pages/Terms'
 import { AuthProvider } from './services/auth'
 import { ChatProvider } from './services/chat'
 import { ListingsProvider } from './services/listings'
 import { PickupsProvider } from './services/pickups'
+import { TermsProvider } from './services/terms'
 
 export default function App() {
   return (
@@ -21,8 +23,10 @@ export default function App() {
       <ListingsProvider>
         <PickupsProvider>
           <ChatProvider>
+            <TermsProvider>
             <Routes>
               <Route path="/" element={<Landing />} />
+              <Route path="/terms" element={<TermsPage />} />
               <Route path="/app/sign-in" element={<SignIn />} />
               <Route path="/app" element={<AppShell />}>
                 <Route index element={<Navigate to="/app/browse" replace />} />
@@ -37,6 +41,7 @@ export default function App() {
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </TermsProvider>
           </ChatProvider>
         </PickupsProvider>
       </ListingsProvider>

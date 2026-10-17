@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Spinner } from '../components/ui'
 import { useLocation } from '../lib/geo'
 import { preparePhoto } from '../lib/photos'
@@ -179,6 +179,10 @@ export function Give() {
         {location.kind === 'unsupported' && <p className="error" style={{ margin: 0 }}>This browser can't share a location, so items can't be posted from it.</p>}
         <p className="caption" style={{ margin: 0 }}>Your exact address is never shown. Share it in a message only when you're ready.</p>
       </div>
+
+      <p className="small" style={{ margin: '4px 0 0' }}>
+        <Link to="/terms#prohibited" target="_blank" rel="noreferrer">🚫 What can't be listed</Link>
+      </p>
 
       <button className="btn primary lg block" disabled={!canPost} style={{ marginTop: 8 }}>
         {posting ? <Spinner inline /> : 'Post Item'}

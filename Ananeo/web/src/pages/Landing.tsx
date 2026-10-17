@@ -134,7 +134,7 @@ export function Landing() {
       <footer>
         <div className="inner">
           <span>© {new Date().getFullYear()} Ananeo. <em>Ananeo</em> is from the Greek ανανέωση, "renewal."</span>
-          <span><Link to="/app">Open the app</Link> · <a href="#methodology">Impact methodology</a></span>
+          <span><Link to="/app">Open the app</Link> · <a href="#methodology">Impact methodology</a> · <Link to="/terms">Terms of use</Link></span>
         </div>
       </footer>
     </div>

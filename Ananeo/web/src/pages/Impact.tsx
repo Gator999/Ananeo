@@ -77,6 +77,7 @@ export function Impact() {
 
       <div className="section-title">Account</div>
       <div className="list">
+        <Link className="list-row" to="/terms">Terms of Use</Link>
         <button className="list-row" onClick={() => account(auth.signOut)}>Sign Out</button>
         <button className="list-row" style={{ color: 'var(--danger)' }} onClick={() => setConfirmingDelete(true)}>Delete Account</button>
       </div>

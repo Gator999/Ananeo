@@ -4,6 +4,8 @@ import { isConfigured } from '../lib/supabase'
 import { useAuth } from '../services/auth'
 import { useChat } from '../services/chat'
 import { usePickups } from '../services/pickups'
+import { useTerms } from '../services/terms'
+import { TermsAcceptance } from './Terms'
 
 const TABS = [
   { to: '/app/browse', label: 'Browse', icon: '🔍' },
@@ -16,6 +18,7 @@ const TABS = [
 /** Signed-in layout: a top bar with navigation on wide screens, a tab bar on phones. */
 export function AppShell() {
   const { state } = useAuth()
+  const terms = useTerms()
   const pickups = usePickups()
   const chat = useChat()
   const location = useLocation()
@@ -35,6 +38,8 @@ export function AppShell() {
   }
   if (state.kind === 'loading') return <Spinner />
   if (state.kind === 'signedOut') return <Navigate to="/app/sign-in" replace state={{ from: location.pathname }} />
+  // The terms come first, every time the version goes up.
+  if (terms.status.kind !== 'accepted') return <TermsAcceptance />
 
   const badge = pickups.needsYouCount + chat.unreadAcross(pickups.all)
 
