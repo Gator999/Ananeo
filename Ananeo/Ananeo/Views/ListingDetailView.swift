@@ -139,7 +139,7 @@ struct ListingDetailView: View {
             HStack(spacing: AnaneoTheme.Spacing.sm) {
                 Chip(title: listing.category.title, systemImage: listing.category.systemImage)
                 TintChip(
-                    title: "~\(listing.estKg.formatted(.number.precision(.fractionLength(0)))) kg kept from landfill",
+                    title: "~\(listing.estPounds.formatted(.number.precision(.fractionLength(0)))) lbs kept from landfill",
                     systemImage: "leaf",
                     tint: AnaneoTheme.leaf
                 )

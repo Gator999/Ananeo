@@ -18,8 +18,8 @@ struct StatTile: View {
         self.init(value: count.formatted(), label: label, tint: tint)
     }
 
-    init(kilograms: Double, label: String, tint: Color = AnaneoTheme.ink) {
-        self.init(value: kilograms.formatted(.number.precision(.fractionLength(0...1))) + " kg", label: label, tint: tint)
+    init(pounds: Double, label: String, tint: Color = AnaneoTheme.ink) {
+        self.init(value: pounds.formatted(.number.precision(.fractionLength(0...1))) + " lbs", label: label, tint: tint)
     }
 
     var body: some View {
@@ -50,7 +50,7 @@ struct StatTile: View {
 #Preview("Stat tiles") {
     struct Demo: View {
         @State private var given = 14
-        @State private var kilograms = 128.4
+        @State private var pounds = 283.1
 
         var body: some View {
             VStack(spacing: AnaneoTheme.Spacing.lg) {
@@ -58,11 +58,11 @@ struct StatTile: View {
                     StatTile(count: given, label: "Items given")
                     StatTile(count: 6, label: "Items received")
                 }
-                StatTile(kilograms: kilograms, label: "Kept from landfill", tint: AnaneoTheme.progress)
+                StatTile(pounds: pounds, label: "Kept from landfill", tint: AnaneoTheme.progress)
                 Button("Confirm a handoff") {
                     withAnimation(AnaneoMotion.roll()) {
                         given += 1
-                        kilograms += 6.5
+                        pounds += 14.3
                     }
                 }
                 .buttonStyle(.pill(.secondary))

@@ -119,7 +119,7 @@ enum AnaneoTheme {
     enum Typography {
         /// Screen titles. Heavy weight, tightened by `displayTitle()`.
         static let display = Font.system(.largeTitle, design: .default, weight: .heavy)
-        /// Counts and kilograms. Rounded so numbers read as friendly.
+        /// Counts and pounds. Rounded so numbers read as friendly.
         static func numerals(_ style: Font.TextStyle = .title) -> Font {
             .system(style, design: .rounded, weight: .bold)
         }
@@ -139,7 +139,7 @@ extension View {
             .tracking(-0.8)
     }
 
-    /// Rounded, tabular numerals for counts and kilograms.
+    /// Rounded, tabular numerals for counts and pounds.
     func numerals(_ style: Font.TextStyle = .title) -> some View {
         font(AnaneoTheme.Typography.numerals(style))
             .monospacedDigit()
@@ -165,7 +165,7 @@ extension View {
     ScrollView {
         VStack(alignment: .leading, spacing: AnaneoTheme.Spacing.lg) {
             Text("Near you").displayTitle()
-            Text("128.4 kg").numerals(.largeTitle)
+            Text("283.1 lbs").numerals(.largeTitle)
             Text("Renewal palette").sectionLabel()
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 96))], spacing: AnaneoTheme.Spacing.md) {
                 ForEach(swatches, id: \.0) { name, color in
