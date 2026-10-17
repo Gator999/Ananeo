@@ -1,0 +1,69 @@
+-- __Title__: ownership, privacy, and privileges.
+-- Run with: supabase test db
+begin;
+-- Act as postgres explicitly. On hosted runs the CLI connects with a temporary
+-- login role that cannot see the extensions schema where pgTAP lives.
+set local role postgres;
+create extension if not exists pgtap with schema extensions;
+set search_path = public, extensions;
+
+-- Keep this in step with the number of checks below.
+select plan(12);
+
+-- Users -----------------------------------------------------------------------
+insert into auth.users (id, email, aud, role, raw_user_meta_data) values
+    ('00000000-0000-0000-0000-00000000000a', 'alice@test.local', 'authenticated', 'authenticated', '{"full_name":"Alice"}'),
+    ('00000000-0000-0000-0000-00000000000b', 'bob@test.local',   'authenticated', 'authenticated', '{"full_name":"Bob"}');
+
+create function pg_temp.act_as(uid uuid) returns void language sql as $$
+    select set_config('request.jwt.claims', json_build_object('sub', uid, 'role', 'authenticated')::text, true);
+    set local role authenticated;
+$$;
+
+-- Shape -----------------------------------------------------------------------
+select has_table('public', '__table__', '__table__ table exists');
+select ok((select relrowsecurity from pg_class where oid = 'public.__table__'::regclass), 'row level security is on');
+
+-- Alice adds one -------------------------------------------------------------
+-- The app sends only the granted columns, so rows are found by title here.
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000a');
+select lives_ok(
+    $$insert into __table__ (title) values ('First')$$,
+    'owner can add a row');
+select is((select owner_id from __table__ where title = 'First'),
+    '00000000-0000-0000-0000-00000000000a'::uuid, 'owner defaults to caller');
+select throws_ok(
+    $$insert into __table__ (title) values ('')$$,
+    '23514', null, 'empty titles are rejected');
+select throws_ok(
+    $$insert into __table__ (owner_id, title) values ('00000000-0000-0000-0000-00000000000b', 'Spoofed')$$,
+    '42501', null, 'cannot add a row for someone else');
+select throws_ok(
+    $$update __table__ set created_at = now() - interval '1 year' where title = 'First'$$,
+    '42501', null, 'columns outside the allowed set cannot be changed');
+
+-- Bob can't see or touch it ---------------------------------------------------
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000b');
+select is((select count(*) from __table__), 0::bigint, 'others cannot read the row');
+update __table__ set title = 'hacked' where title = 'First';
+delete from __table__ where title = 'First';
+
+set local role postgres;
+select is((select count(*) from __table__ where title = 'First'), 1::bigint, 'others cannot edit or delete the row');
+
+-- Alice edits and deletes -----------------------------------------------------
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000a');
+update __table__ set title = 'Renamed' where title = 'First';
+select is((select count(*) from __table__ where title = 'Renamed'), 1::bigint, 'owner can rename');
+delete from __table__ where title = 'Renamed';
+select is((select count(*) from __table__), 0::bigint, 'owner can delete');
+
+-- Signed out ------------------------------------------------------------------
+set local role postgres;
+set local role anon;
+select throws_ok('select count(*) from __table__', '42501', null, 'signed-out users cannot read');
+
+-- TODO: Add a check for every rule this feature adds.
+
+select * from finish();
+rollback;
