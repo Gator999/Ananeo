@@ -17,6 +17,12 @@ Notes for future work on this app. The product plan and roadmap live in PLAN.md.
 - The terms of use live in the app, in `Shared/TermsOfUse.swift`, with a version number. Bump `version` to make everyone accept again. Acceptance is recorded per version in `terms_acceptances` through `accept_terms`. `RootView` shows the terms until they're accepted, and `TermsService` remembers acceptance per user on the device.
 - Owners can update an item only while it is `available` or `removed`. Reserved and handed-off items change only through `reserve_item`, `cancel_reservation`, `confirm_handoff`, and `withdraw_request`.
 
+## App Review
+
+- App Review needs a demo account (guideline 2.1(a)); Sign in with Apple alone was rejected on 2026-10-31. The Welcome screen has a small "Sign in with email" link under the Apple button that opens `EmailSignInView` (password sign-in only, no sign-up). Accounts with passwords are made by hand in SQL; the credentials live in `Config/ReviewAccount.md` (gitignored) and in App Store Connect > App Review Information.
+- Demo accounts carry `app_metadata.demo_location` (`{"latitude", "longitude"}`). `AuthService.demoCoordinate` reads it and `RootView` pins `LocationService.fixedCoordinate` to it, so Browse, Give, and Places use that area (Cupertino) instead of the device and never ask for location permission. Everyone else is unaffected.
+- The reviewer account is a moderator, with seeded listings, requests, a reserved pickup, finished handoffs, chats, one open report, and five unverified places around Cupertino. Re-run the seed (fixed ids, deletes first) if the content gets used up.
+
 ## iOS
 
 - SwiftUI, iOS 18, Swift 5 language mode. The Xcode project uses synchronized folders, so new files under `Ananeo/` are picked up without editing the project file.

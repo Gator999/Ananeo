@@ -7,6 +7,7 @@ struct RootView: View {
     @Environment(PickupService.self) private var pickups
     @Environment(ChatService.self) private var chat
     @Environment(SafetyService.self) private var safety
+    @Environment(LocationService.self) private var location
 
     var body: some View {
         Group {
@@ -26,6 +27,7 @@ struct RootView: View {
             chat.reset()
             safety.reset()
             terms.reset()
+            location.fixedCoordinate = auth.demoCoordinate
         }
     }
 

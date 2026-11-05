@@ -14,11 +14,12 @@ struct PlacesMap: View {
                 Annotation(place.name, coordinate: place.coordinate, anchor: .bottom) {
                     PlacePin(place: place, isSelected: place.id == selection)
                 }
+                // The pin draws its own label when selected; annotationTitles is a map-content modifier.
+                .annotationTitles(.hidden)
                 .tag(place.id)
             }
         }
         .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
-        .annotationTitles(.hidden)
         .mapControlVisibility(.hidden)
     }
 }

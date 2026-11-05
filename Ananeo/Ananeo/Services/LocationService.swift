@@ -16,6 +16,9 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     private(set) var authorization: CLAuthorizationStatus
     private(set) var coordinate: CLLocationCoordinate2D?
     private(set) var errorMessage: String?
+    /// When set, every screen uses this point instead of the device's location and nothing asks
+    /// for permission. Demo accounts (App Review) are pinned to the area their content is seeded in.
+    var fixedCoordinate: CLLocationCoordinate2D?
 
     @ObservationIgnored private let manager = CLLocationManager()
 
@@ -27,6 +30,7 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     }
 
     var status: Status {
+        if let fixedCoordinate { return .ready(fixedCoordinate) }
         switch authorization {
         case .notDetermined: return .needsPermission
         case .denied, .restricted: return .denied
@@ -37,6 +41,7 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     /// Asks for permission the first time, otherwise refreshes the location.
     func request() {
         errorMessage = nil
+        guard fixedCoordinate == nil else { return }
         switch authorization {
         case .notDetermined:
             manager.requestWhenInUseAuthorization()

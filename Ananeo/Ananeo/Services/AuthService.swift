@@ -1,4 +1,5 @@
 import AuthenticationServices
+import CoreLocation
 import CryptoKit
 import Foundation
 import Observation
@@ -17,6 +18,9 @@ final class AuthService {
     private(set) var state: State = .loading
     private(set) var isWorking = false
     var errorMessage: String?
+    /// Set for demo accounts (App Review), whose `app_metadata.demo_location` pins the app to one
+    /// area so the seeded listings, places, and pickups show wherever the reviewer is.
+    private(set) var demoCoordinate: CLLocationCoordinate2D?
 
     @ObservationIgnored private let client: SupabaseClient
     @ObservationIgnored private var currentNonce: String?
@@ -33,8 +37,10 @@ final class AuthService {
             guard let self else { return }
             for await (_, session) in client.auth.authStateChanges {
                 if let session, !session.isExpired {
+                    demoCoordinate = Self.demoCoordinate(from: session.user.appMetadata)
                     state = .signedIn(userID: session.user.id)
                 } else {
+                    demoCoordinate = nil
                     state = .signedOut
                 }
             }
@@ -110,6 +116,26 @@ final class AuthService {
         }
     }
 
+    // MARK: - Sign in with email
+
+    /// Password sign-in for accounts created by hand, such as the App Review demo account.
+    /// There is no sign-up form in the app, so everyone else uses Apple.
+    func signIn(email: String, password: String) async -> Bool {
+        errorMessage = nil
+        isWorking = true
+        defer { isWorking = false }
+        do {
+            try await client.auth.signIn(
+                email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+                password: password
+            )
+            return true
+        } catch {
+            errorMessage = "Sign in failed: \(error.localizedDescription)"
+            return false
+        }
+    }
+
     // MARK: - Account
 
     func signOut() async {
@@ -144,10 +170,31 @@ final class AuthService {
         SHA256.hash(data: Data(input.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 
+    /// `app_metadata.demo_location` is `{"latitude": …, "longitude": …}`, set by hand on demo accounts.
+    static func demoCoordinate(from appMetadata: [String: AnyJSON]) -> CLLocationCoordinate2D? {
+        guard case .object(let location)? = appMetadata["demo_location"],
+              let latitude = location["latitude"]?.number,
+              let longitude = location["longitude"]?.number,
+              CLLocationCoordinate2DIsValid(CLLocationCoordinate2D(latitude: latitude, longitude: longitude))
+        else { return nil }
+        return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+
     static func displayName(from components: PersonNameComponents?) -> String? {
         guard let components else { return nil }
         let name = PersonNameComponentsFormatter.localizedString(from: components, style: .default)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return name.isEmpty ? nil : String(name.prefix(50))
+    }
+}
+
+private extension AnyJSON {
+    /// A JSON number as a Double, whether it was written as an integer or a decimal.
+    var number: Double? {
+        switch self {
+        case .double(let value): value
+        case .integer(let value): Double(value)
+        default: nil
+        }
     }
 }

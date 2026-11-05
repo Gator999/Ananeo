@@ -11,6 +11,7 @@ struct SignInView: View {
     @State private var drawn = 0.0
     @State private var revealedWords = 0
     @State private var community: CommunityImpact?
+    @State private var showingEmailSignIn = false
     @ScaledMetric private var wordmarkSize: CGFloat = 56
 
     private static let lines = [["Give", "More."], ["Waste", "Less."], ["Keep", "It", "Moving."]]
@@ -39,6 +40,7 @@ struct SignInView: View {
             .padding(.horizontal, AnaneoTheme.Spacing.xxl)
         }
         .safeAreaInset(edge: .bottom) { signIn }
+        .sheet(isPresented: $showingEmailSignIn) { EmailSignInView() }
         .preferredColorScheme(.dark)
         .task { await reveal() }
         .task { community = try? await listings.communityImpact() }
@@ -105,12 +107,19 @@ struct SignInView: View {
                 }
             }
 
-            if let error = auth.errorMessage {
+            if let error = auth.errorMessage, !showingEmailSignIn {
                 Text(error)
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(AnaneoTheme.sun)
                     .multilineTextAlignment(.center)
             }
+
+            // Accounts made by hand, like the App Review demo account, sign in with a password.
+            Button("Sign in with email") { showingEmailSignIn = true }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.85))
+                .frame(minHeight: 44)
+                .disabled(auth.isWorking)
 
             Text("Your exact location is never shown to other people.")
                 .font(.footnote)

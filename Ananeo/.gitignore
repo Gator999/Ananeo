@@ -4,3 +4,4 @@ DerivedData/
 .DS_Store
 Config/Secrets.xcconfig
 build/
+Config/ReviewAccount.md
