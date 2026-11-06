@@ -17,6 +17,11 @@ account works and what to send back.
 
 ## Set up the hosted project (once, and again to reset the demo)
 
+The Email provider must be on: Supabase dashboard > Authentication > Sign In / Providers > Email >
+"Enable Email provider", with "Confirm email" left on. Password sign-in answers "Email logins are
+disabled" otherwise. The SQL in scripts/seed-review.py can also be run by hand in the SQL editor;
+then `python3 scripts/seed-review.py --photos-only` uploads the photos and prints the update to run.
+
 From this folder, with the CLI linked to the hosted project (`supabase link --project-ref fmkjghyzpyxaraxdbsgi`):
 
 ```bash

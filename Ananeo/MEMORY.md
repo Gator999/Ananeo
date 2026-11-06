@@ -19,7 +19,7 @@ Notes for future work on this app. The product plan and roadmap live in PLAN.md.
 
 ## App Review
 
-- App Review needs a demo account (guideline 2.1(a)); Sign in with Apple alone was rejected on 2026-10-31. The Welcome screen has a small "Sign in with email" link under the Apple button that opens `EmailSignInView` (password sign-in only, no sign-up). Accounts with passwords are made by hand in SQL; the credentials live in `Config/ReviewAccount.md` (gitignored) and in App Store Connect > App Review Information.
+- App Review needs a demo account (guideline 2.1(a)); Sign in with Apple alone was rejected on 2026-10-31. The Welcome screen has a small "Sign in with email" link under the Apple button that opens `EmailSignInView` (password sign-in only, no sign-up). The Email provider must stay enabled in the Supabase dashboard or password sign-in fails. Accounts with passwords are made by hand in SQL; the credentials live in `Config/ReviewAccount.md` (gitignored) and in App Store Connect > App Review Information.
 - Demo accounts carry `app_metadata.demo_location` (`{"latitude", "longitude"}`). `AuthService.demoCoordinate` reads it and `RootView` pins `LocationService.fixedCoordinate` to it, so Browse, Give, and Places use that area (Cupertino) instead of the device and never ask for location permission. Everyone else is unaffected.
 - The reviewer account is a moderator, with seeded listings, requests, a reserved pickup, finished handoffs, chats, one open report, and five unverified places around Cupertino. Re-run the seed (fixed ids, deletes first) if the content gets used up.
 
