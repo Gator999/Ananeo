@@ -24,7 +24,6 @@ import secrets
 import subprocess
 import sys
 import tempfile
-import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 R, M, J = '11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333'
@@ -195,19 +194,25 @@ def draw_photos(folder):
 
 
 def upload_photos(folder):
+    """Uploads through curl: python.org builds of Python ship without the system's root certificates."""
     url, key = backend()
     tokens = {}
     for id_, email, _, pw in USERS:
-        req = urllib.request.Request(f'{url}/auth/v1/token?grant_type=password', data=json.dumps({'email': email, 'password': pw}).encode(),
-                                     headers={'apikey': key, 'Content-Type': 'application/json'})
-        with urllib.request.urlopen(req) as res:
-            tokens[id_] = json.load(res)['access_token']
+        out = subprocess.run(['curl', '-sS', f'{url}/auth/v1/token?grant_type=password', '-H', f'apikey: {key}',
+                              '-H', 'Content-Type: application/json', '-d', json.dumps({'email': email, 'password': pw})],
+                             capture_output=True, text=True, check=True)
+        session = json.loads(out.stdout)
+        if 'access_token' not in session:
+            sys.exit(f"Sign-in failed for {email}: {session.get('msg', out.stdout)}")
+        tokens[id_] = session['access_token']
     for slug, owner, *_ in ITEMS:
         for name in (f'{slug}.jpg', f'{slug}_thumb.jpg'):
-            req = urllib.request.Request(f'{url}/storage/v1/object/item-photos/{owner}/{name}', data=(folder / name).read_bytes(), method='POST',
-                                         headers={'apikey': key, 'Authorization': f'Bearer {tokens[owner]}', 'Content-Type': 'image/jpeg', 'x-upsert': 'true'})
-            with urllib.request.urlopen(req) as res:
-                res.read()
+            out = subprocess.run(['curl', '-sS', '-X', 'POST', f'{url}/storage/v1/object/item-photos/{owner}/{name}',
+                                  '-H', f'apikey: {key}', '-H', f'Authorization: Bearer {tokens[owner]}',
+                                  '-H', 'Content-Type: image/jpeg', '-H', 'x-upsert: true', '--data-binary', f'@{folder / name}'],
+                                 capture_output=True, text=True, check=True)
+            if '"Key"' not in out.stdout:
+                sys.exit(f"Upload failed for {name}: {out.stdout}")
 
 
 if __name__ == '__main__':
