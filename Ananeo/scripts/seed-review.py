@@ -15,6 +15,10 @@ What it does, in order:
   3. Draws a placeholder photo per listing (Pillow) and uploads it, with its thumbnail, as each owner
      through the storage API, using the publishable key from Config/Secrets.xcconfig.
 
+With --photos-only it skips steps 1 and 2, reads the passwords already in Config/ReviewAccount.md,
+and only draws and uploads the photos (for when the SQL was run by hand in the dashboard). The
+listings then need their photo paths set; the script prints the SQL for that.
+
 Nothing here touches real accounts. The demo location only affects accounts whose app_metadata has it.
 """
 import json
@@ -215,14 +219,33 @@ def upload_photos(folder):
                 sys.exit(f"Upload failed for {name}: {out.stdout}")
 
 
+def read_credentials():
+    """Puts the passwords from Config/ReviewAccount.md back into USERS."""
+    text = (ROOT / 'Config' / 'ReviewAccount.md').read_text()
+    found = dict(re.findall(r"\| (\S+@ananeo\.app) \| (\S+) \|", text))
+    USERS[:] = [(id_, email, name, found[email]) for id_, email, name, _ in USERS]
+
+
+def photo_sql():
+    return "\n".join(f"update public.items set photos = '{{{owner}/{slug}.jpg}}' where id = '{ITEM_ID[slug]}';" for slug, owner, *_ in ITEMS)
+
+
 if __name__ == '__main__':
-    write_credentials()
-    print('1/3 accounts and content…')
-    run_sql(build_sql())
+    photos_only = '--photos-only' in sys.argv
+    if photos_only:
+        read_credentials()
+    else:
+        write_credentials()
+        print('1/3 accounts and content…')
+        run_sql(build_sql())
     folder = ROOT / 'build' / 'review-photos'
     folder.mkdir(parents=True, exist_ok=True)
     print('2/3 photos…')
     draw_photos(folder)
     print('3/3 uploading…')
     upload_photos(folder)
-    print('Done. Credentials are in Config/ReviewAccount.md.')
+    if photos_only:
+        print('Uploaded. Now run this in the SQL editor so the listings point at the photos:\n')
+        print(photo_sql())
+    else:
+        print('Done. Credentials are in Config/ReviewAccount.md.')
