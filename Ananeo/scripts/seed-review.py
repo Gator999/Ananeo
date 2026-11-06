@@ -209,11 +209,14 @@ def upload_photos(folder):
         if 'access_token' not in session:
             sys.exit(f"Sign-in failed for {email}: {session.get('msg', out.stdout)}")
         tokens[id_] = session['access_token']
+    # The bucket lets owners insert and delete in their folder, not update, so an upsert is refused.
+    # Delete any copy from an earlier run first (a missing file just returns not found), then insert.
     for slug, owner, *_ in ITEMS:
         for name in (f'{slug}.jpg', f'{slug}_thumb.jpg'):
-            out = subprocess.run(['curl', '-sS', '-X', 'POST', f'{url}/storage/v1/object/item-photos/{owner}/{name}',
-                                  '-H', f'apikey: {key}', '-H', f'Authorization: Bearer {tokens[owner]}',
-                                  '-H', 'Content-Type: image/jpeg', '-H', 'x-upsert: true', '--data-binary', f'@{folder / name}'],
+            auth = ['-H', f'apikey: {key}', '-H', f'Authorization: Bearer {tokens[owner]}']
+            subprocess.run(['curl', '-sS', '-o', '/dev/null', '-X', 'DELETE', f'{url}/storage/v1/object/item-photos/{owner}/{name}', *auth], check=True)
+            out = subprocess.run(['curl', '-sS', '-X', 'POST', f'{url}/storage/v1/object/item-photos/{owner}/{name}', *auth,
+                                  '-H', 'Content-Type: image/jpeg', '--data-binary', f'@{folder / name}'],
                                  capture_output=True, text=True, check=True)
             if '"Key"' not in out.stdout:
                 sys.exit(f"Upload failed for {name}: {out.stdout}")
